@@ -1,0 +1,1839 @@
+{
+    "file": "POLSTATUS.CBL",
+    "program_id": "POLSTAT",
+    "parser": {
+        "name": "Tree-sitter",
+        "language": "COBOL",
+        "grammar": "tree-sitter-language-pack"
+    },
+    "root": "start",
+    "has_errors": true,
+    "divisions": [
+        "IDENTIFICATION",
+        "ENVIRONMENT",
+        "DATA",
+        "PROCEDURE"
+    ],
+    "sections": [
+        "INPUT-OUTPUT",
+        "FILE",
+        "WORKING-STORAGE"
+    ],
+    "paragraphs": [
+        {
+            "text": "MAIN.",
+            "start_line": 105
+        },
+        {
+            "text": "GOBACK.",
+            "start_line": 170
+        },
+        {
+            "text": "PROCESS-POLICY.",
+            "start_line": 172
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 197
+        },
+        {
+            "text": "DETERMINE-STATUS.",
+            "start_line": 199
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 221
+        },
+        {
+            "text": "WRITE-POLICY.",
+            "start_line": 223
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 231
+        },
+        {
+            "text": "WRITE-ERROR.",
+            "start_line": 233
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 242
+        },
+        {
+            "text": "CLOSE-FILES.",
+            "start_line": 244
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 276
+        },
+        {
+            "text": "VALIDATE-CALENDAR-DATE.",
+            "start_line": 278
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 291
+        },
+        {
+            "text": "SET-MAX-DAY.",
+            "start_line": 293
+        },
+        {
+            "text": "END-EVALUATE.",
+            "start_line": 306
+        },
+        {
+            "text": "CHECK-LEAP-YEAR.",
+            "start_line": 308
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 319
+        }
+    ],
+    "files": [
+        {
+            "name": "POLICY-IN",
+            "assign_to": "POLIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PI-ST"
+        },
+        {
+            "name": "POLICY-OUT",
+            "assign_to": "POLOUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PO-ST"
+        },
+        {
+            "name": "ERROR-OUT",
+            "assign_to": "ERROUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-ER-ST"
+        }
+    ],
+    "variables": [
+        {
+            "level": 1,
+            "name": "PI-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 37
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 38
+        },
+        {
+            "level": 5,
+            "name": "PI-CUSTOMER-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 39
+        },
+        {
+            "level": 5,
+            "name": "PI-AGENT-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 40
+        },
+        {
+            "level": 5,
+            "name": "PI-PRODUCT-TYPE",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 41
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-STATUS",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 42
+        },
+        {
+            "level": 5,
+            "name": "PI-EFFECTIVE-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 43
+        },
+        {
+            "level": 5,
+            "name": "PI-EXPIRY-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 44
+        },
+        {
+            "level": 5,
+            "name": "PI-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 45
+        },
+        {
+            "level": 5,
+            "name": "PI-CREATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 46
+        },
+        {
+            "level": 5,
+            "name": "PI-UPDATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 47
+        },
+        {
+            "level": 1,
+            "name": "PO-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 50
+        },
+        {
+            "level": 5,
+            "name": "PO-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 51
+        },
+        {
+            "level": 5,
+            "name": "PO-CUSTOMER-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 52
+        },
+        {
+            "level": 5,
+            "name": "PO-AGENT-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 53
+        },
+        {
+            "level": 5,
+            "name": "PO-PRODUCT-TYPE",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 54
+        },
+        {
+            "level": 5,
+            "name": "PO-POLICY-STATUS",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 55
+        },
+        {
+            "level": 5,
+            "name": "PO-EFFECTIVE-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 56
+        },
+        {
+            "level": 5,
+            "name": "PO-EXPIRY-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 57
+        },
+        {
+            "level": 5,
+            "name": "PO-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 58
+        },
+        {
+            "level": 5,
+            "name": "PO-CREATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 59
+        },
+        {
+            "level": 5,
+            "name": "PO-UPDATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 60
+        },
+        {
+            "level": 1,
+            "name": "ER-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 63
+        },
+        {
+            "level": 5,
+            "name": "ER-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 64
+        },
+        {
+            "level": 5,
+            "name": "ER-CODE",
+            "picture": "X(4)",
+            "value": null,
+            "start_line": 65
+        },
+        {
+            "level": 5,
+            "name": "ER-MESSAGE",
+            "picture": "X(54)",
+            "value": null,
+            "start_line": 66
+        },
+        {
+            "level": 1,
+            "name": "WS-STATUS",
+            "picture": null,
+            "value": null,
+            "start_line": 69
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 70
+        },
+        {
+            "level": 5,
+            "name": "WS-PO-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 71
+        },
+        {
+            "level": 5,
+            "name": "WS-ER-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 72
+        },
+        {
+            "level": 1,
+            "name": "WS-SW",
+            "picture": null,
+            "value": null,
+            "start_line": 73
+        },
+        {
+            "level": 5,
+            "name": "WS-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 74
+        },
+        {
+            "level": 88,
+            "name": "END-OF-FILE",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 75
+        },
+        {
+            "level": 5,
+            "name": "WS-FATAL",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 76
+        },
+        {
+            "level": 88,
+            "name": "FATAL-ERROR",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 77
+        },
+        {
+            "level": 5,
+            "name": "WS-DATE-VALID",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 78
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 79
+        },
+        {
+            "level": 5,
+            "name": "WS-PO-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 80
+        },
+        {
+            "level": 5,
+            "name": "WS-ER-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 81
+        },
+        {
+            "level": 1,
+            "name": "WS-DATE",
+            "picture": null,
+            "value": null,
+            "start_line": 82
+        },
+        {
+            "level": 5,
+            "name": "WS-CURRENT-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 83
+        },
+        {
+            "level": 5,
+            "name": "WS-DATE-IN",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 84
+        },
+        {
+            "level": 5,
+            "name": "WS-YEAR",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 85
+        },
+        {
+            "level": 5,
+            "name": "WS-MONTH",
+            "picture": "99",
+            "value": null,
+            "start_line": 86
+        },
+        {
+            "level": 5,
+            "name": "WS-DAY",
+            "picture": "99",
+            "value": null,
+            "start_line": 87
+        },
+        {
+            "level": 5,
+            "name": "WS-MAX-DAY",
+            "picture": "99",
+            "value": null,
+            "start_line": 88
+        },
+        {
+            "level": 5,
+            "name": "WS-LEAP",
+            "picture": "X",
+            "value": null,
+            "start_line": 89
+        },
+        {
+            "level": 5,
+            "name": "WS-REM4",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 90
+        },
+        {
+            "level": 5,
+            "name": "WS-REM100",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 91
+        },
+        {
+            "level": 5,
+            "name": "WS-REM400",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 92
+        },
+        {
+            "level": 1,
+            "name": "WS-COUNTERS",
+            "picture": null,
+            "value": null,
+            "start_line": 93
+        },
+        {
+            "level": 5,
+            "name": "WS-READ",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 94
+        },
+        {
+            "level": 5,
+            "name": "WS-WRITTEN",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 95
+        },
+        {
+            "level": 5,
+            "name": "WS-CHANGED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 96
+        },
+        {
+            "level": 5,
+            "name": "WS-PENDING",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 97
+        },
+        {
+            "level": 5,
+            "name": "WS-ACTIVE",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 98
+        },
+        {
+            "level": 5,
+            "name": "WS-EXPIRED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 99
+        },
+        {
+            "level": 5,
+            "name": "WS-CANCELLED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 100
+        },
+        {
+            "level": 5,
+            "name": "WS-REJECTED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 101
+        },
+        {
+            "level": 5,
+            "name": "WS-IO-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 102
+        }
+    ],
+    "records": [
+        {
+            "record_name": "PI-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 38
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CUSTOMER-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 39
+                },
+                {
+                    "level": 5,
+                    "name": "PI-AGENT-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 40
+                },
+                {
+                    "level": 5,
+                    "name": "PI-PRODUCT-TYPE",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 41
+                },
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-STATUS",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 42
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EFFECTIVE-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 43
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EXPIRY-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 44
+                },
+                {
+                    "level": 5,
+                    "name": "PI-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 45
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CREATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 46
+                },
+                {
+                    "level": 5,
+                    "name": "PI-UPDATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 47
+                }
+            ],
+            "start_line": 37
+        },
+        {
+            "record_name": "PO-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PO-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 51
+                },
+                {
+                    "level": 5,
+                    "name": "PO-CUSTOMER-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 52
+                },
+                {
+                    "level": 5,
+                    "name": "PO-AGENT-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 53
+                },
+                {
+                    "level": 5,
+                    "name": "PO-PRODUCT-TYPE",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 54
+                },
+                {
+                    "level": 5,
+                    "name": "PO-POLICY-STATUS",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 55
+                },
+                {
+                    "level": 5,
+                    "name": "PO-EFFECTIVE-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 56
+                },
+                {
+                    "level": 5,
+                    "name": "PO-EXPIRY-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 57
+                },
+                {
+                    "level": 5,
+                    "name": "PO-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 58
+                },
+                {
+                    "level": 5,
+                    "name": "PO-CREATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 59
+                },
+                {
+                    "level": 5,
+                    "name": "PO-UPDATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 60
+                }
+            ],
+            "start_line": 50
+        },
+        {
+            "record_name": "ER-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "ER-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 64
+                },
+                {
+                    "level": 5,
+                    "name": "ER-CODE",
+                    "picture": "X(4)",
+                    "value": null,
+                    "start_line": 65
+                },
+                {
+                    "level": 5,
+                    "name": "ER-MESSAGE",
+                    "picture": "X(54)",
+                    "value": null,
+                    "start_line": 66
+                }
+            ],
+            "start_line": 63
+        },
+        {
+            "record_name": "WS-STATUS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-PI-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 70
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PO-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 71
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ER-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 72
+                }
+            ],
+            "start_line": 69
+        },
+        {
+            "record_name": "WS-SW",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 74
+                },
+                {
+                    "level": 88,
+                    "name": "END-OF-FILE",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 75
+                },
+                {
+                    "level": 5,
+                    "name": "WS-FATAL",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 76
+                },
+                {
+                    "level": 88,
+                    "name": "FATAL-ERROR",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 77
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DATE-VALID",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 78
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PI-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 79
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PO-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 80
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ER-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 81
+                }
+            ],
+            "start_line": 73
+        },
+        {
+            "record_name": "WS-DATE",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-CURRENT-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 83
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DATE-IN",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 84
+                },
+                {
+                    "level": 5,
+                    "name": "WS-YEAR",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 85
+                },
+                {
+                    "level": 5,
+                    "name": "WS-MONTH",
+                    "picture": "99",
+                    "value": null,
+                    "start_line": 86
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DAY",
+                    "picture": "99",
+                    "value": null,
+                    "start_line": 87
+                },
+                {
+                    "level": 5,
+                    "name": "WS-MAX-DAY",
+                    "picture": "99",
+                    "value": null,
+                    "start_line": 88
+                },
+                {
+                    "level": 5,
+                    "name": "WS-LEAP",
+                    "picture": "X",
+                    "value": null,
+                    "start_line": 89
+                },
+                {
+                    "level": 5,
+                    "name": "WS-REM4",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 90
+                },
+                {
+                    "level": 5,
+                    "name": "WS-REM100",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 91
+                },
+                {
+                    "level": 5,
+                    "name": "WS-REM400",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 92
+                }
+            ],
+            "start_line": 82
+        },
+        {
+            "record_name": "WS-COUNTERS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-READ",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 94
+                },
+                {
+                    "level": 5,
+                    "name": "WS-WRITTEN",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 95
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CHANGED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 96
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PENDING",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 97
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ACTIVE",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 98
+                },
+                {
+                    "level": 5,
+                    "name": "WS-EXPIRED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 99
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CANCELLED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 100
+                },
+                {
+                    "level": 5,
+                    "name": "WS-REJECTED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 101
+                },
+                {
+                    "level": 5,
+                    "name": "WS-IO-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 102
+                }
+            ],
+            "start_line": 93
+        }
+    ],
+    "copybooks": [],
+    "operations": {
+        "perform": [
+            "PERFORM SET-MAX-DAY IF WS-DAY >= 1 AND WS-DAY <= WS-MAX-DAY MOVE 'Y' TO WS-DATE-VALID END-IF END-IF END-IF",
+            "PERFORM CHECK-LEAP-YEAR IF WS-LEAP = 'Y' MOVE 29 TO WS-MAX-DAY ELSE MOVE 28 TO WS-MAX-DAY END-IF END-EVALUATE"
+        ],
+        "read": [
+            "READ PIC 9(9) VALUE ZERO"
+        ],
+        "write": [
+            "WRITE-ERROR ELSE MOVE PI-EXPIRY-DATE TO WS-DATE-IN PERFORM VALIDATE-CALENDAR-DATE IF WS-DATE-VALID NOT = 'Y' MOVE 'S002' TO ER-CODE MOVE 'INVALID POLICY EXPIRY DATE' TO ER-MESSAGE PERFORM WRITE-ERROR ELSE IF PI-EXPIRY-DATE < PI-EFFECTIVE-DATE MOVE 'S003' TO ER-CODE MOVE 'EXPIRY DATE BEFORE EFFECTIVE DATE' TO ER-MESSAGE PERFORM WRITE-ERROR ELSE PERFORM DETERMINE-STATUS PERFORM WRITE-POLICY END-IF END-IF END-IF",
+            "WRITE-POLICY",
+            "WRITE PO-REC IF WS-PO-ST = '00' ADD 1 TO WS-WRITTEN ELSE DISPLAY 'POLICY OUTPUT WRITE ERROR ' WS-PO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF",
+            "WRITE-ERROR",
+            "WRITE ER-REC IF WS-ER-ST = '00' ADD 1 TO WS-REJECTED ELSE DISPLAY 'ERROR OUTPUT WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ],
+        "move": [
+            "MOVE PI-REC TO PO-REC IF PI-POLICY-STATUS = 'CN' MOVE 'CN' TO PO-POLICY-STATUS ADD 1 TO WS-CANCELLED ELSE IF WS-CURRENT-DATE < PI-EFFECTIVE-DATE MOVE 'PN' TO PO-POLICY-STATUS ADD 1 TO WS-PENDING ELSE IF WS-CURRENT-DATE <= PI-EXPIRY-DATE MOVE 'AC' TO PO-POLICY-STATUS ADD 1 TO WS-ACTIVE ELSE MOVE 'EX' TO PO-POLICY-STATUS ADD 1 TO WS-EXPIRED END-IF END-IF END-IF IF PO-POLICY-STATUS NOT = PI-POLICY-STATUS ADD 1 TO WS-CHANGED MOVE WS-CURRENT-DATE TO PO-UPDATE-DT END-IF",
+            "MOVE PI-POLICY-NO TO ER-POLICY-NO WRITE ER-REC IF WS-ER-ST = '00' ADD 1 TO WS-REJECTED ELSE DISPLAY 'ERROR OUTPUT WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF",
+            "MOVE 'N' TO WS-PI-OPEN END-IF END-IF IF WS-PO-OPEN = 'Y' CLOSE POLICY-OUT IF WS-PO-ST NOT = '00' DISPLAY 'POLICY OUTPUT CLOSE ERROR ' WS-PO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE 'N' TO WS-PO-OPEN END-IF END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00' DISPLAY 'ERROR OUTPUT CLOSE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE 'N' TO WS-ER-OPEN END-IF END-IF",
+            "MOVE 'N' TO WS-DATE-VALID IF WS-DATE-IN NUMERIC MOVE WS-DATE-IN(1:4) TO WS-YEAR MOVE WS-DATE-IN(5:2) TO WS-MONTH MOVE WS-DATE-IN(7:2) TO WS-DAY IF WS-YEAR > ZERO AND WS-MONTH >= 1 AND WS-MONTH <= 12 PERFORM SET-MAX-DAY IF WS-DAY >= 1 AND WS-DAY <= WS-MAX-DAY MOVE 'Y' TO WS-DATE-VALID END-IF END-IF END-IF",
+            "MOVE 31 TO WS-MAX-DAY WHEN 4 WHEN 6 WHEN 9 WHEN 11 MOVE 30 TO WS-MAX-DAY WHEN 2 PERFORM CHECK-LEAP-YEAR IF WS-LEAP = 'Y' MOVE 29 TO WS-MAX-DAY ELSE MOVE 28 TO WS-MAX-DAY END-IF END-EVALUATE",
+            "MOVE 'N' TO WS-LEAP COMPUTE WS-REM4 = FUNCTION MOD(WS-YEAR, 4) COMPUTE WS-REM100 = FUNCTION MOD(WS-YEAR, 100) COMPUTE WS-REM400 = FUNCTION MOD(WS-YEAR, 400) IF WS-REM400 = ZERO MOVE 'Y' TO WS-LEAP ELSE IF WS-REM4 = ZERO AND WS-REM100 NOT = ZERO MOVE 'Y' TO WS-LEAP END-IF END-IF"
+        ],
+        "open": [
+            "OPEN PIC X VALUE 'N'"
+        ],
+        "close": [
+            "CLOSE-FILES"
+        ],
+        "display": [
+            "DISPLAY 'POLICY OUTPUT WRITE ERROR ' WS-PO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF",
+            "DISPLAY 'ERROR OUTPUT WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ],
+        "if": [
+            "IF EXISTING STATUS = CN, PRESERVE CN",
+            "IF WS-DATE-VALID NOT = 'Y'",
+            "IF OPEN INPUT POLICY-IN IF WS-PI-ST = '00'",
+            "IF OPEN OUTPUT POLICY-OUT IF WS-PO-ST = '00'",
+            "IF OPEN OUTPUT ERROR-OUT IF WS-ER-ST = '00'",
+            "IF IF FATAL-ERROR",
+            "IF PERFORM UNTIL END-OF-FILE OR FATAL-ERROR",
+            "IF WS-PI-ST NOT = '00'",
+            "IF END-",
+            "IF FATAL-ERROR",
+            "IF GOBACK",
+            "IF PI-EXPIRY-DATE < PI-EFFECTIVE-DATE",
+            "IF END-IF",
+            "IF PI-POLICY-STATUS = 'CN'",
+            "IF WS-CURRENT-DATE < PI-EFFECTIVE-DATE",
+            "IF WS-CURRENT-DATE <= PI-EXPIRY-DATE",
+            "IF IF PO-POLICY-STATUS NOT = PI-POLICY-STATUS",
+            "IF WS-PO-ST = '00'",
+            "IF WS-ER-ST = '00'",
+            "IF WS-PI-OPEN = 'Y' CLOSE POLICY-IN IF WS-PI-ST NOT = '00'",
+            "IF END-IF IF WS-PO-OPEN = 'Y' CLOSE POLICY-OUT IF WS-PO-ST NOT = '00'",
+            "IF END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00'",
+            "IF WS-DATE-IN NUMERIC",
+            "IF WS-YEAR > ZERO AND WS-MONTH >= 1 AND WS-MONTH <= 12",
+            "IF WS-DAY >= 1 AND WS-DAY <= WS-MAX-DAY",
+            "IF WS-LEAP = 'Y'",
+            "IF END-EVALUATE",
+            "IF WS-REM400 = ZERO",
+            "IF WS-REM4 = ZERO AND WS-REM100 NOT = ZERO"
+        ],
+        "goto": [],
+        "add": [
+            "ADD 1 TO WS-CANCELLED ELSE IF WS-CURRENT-DATE < PI-EFFECTIVE-DATE MOVE 'PN' TO PO-POLICY-STATUS ADD 1 TO WS-PENDING ELSE IF WS-CURRENT-DATE <= PI-EXPIRY-DATE MOVE 'AC' TO PO-POLICY-STATUS ADD 1 TO WS-ACTIVE ELSE MOVE 'EX' TO PO-POLICY-STATUS ADD 1 TO WS-EXPIRED END-IF END-IF END-IF IF PO-POLICY-STATUS NOT = PI-POLICY-STATUS ADD 1 TO WS-CHANGED MOVE WS-CURRENT-DATE TO PO-UPDATE-DT END-IF",
+            "ADD 1 TO WS-WRITTEN ELSE DISPLAY 'POLICY OUTPUT WRITE ERROR ' WS-PO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF",
+            "ADD 1 TO WS-REJECTED ELSE DISPLAY 'ERROR OUTPUT WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE 'N' TO WS-PI-OPEN END-IF END-IF IF WS-PO-OPEN = 'Y' CLOSE POLICY-OUT IF WS-PO-ST NOT = '00' DISPLAY 'POLICY OUTPUT CLOSE ERROR ' WS-PO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE 'N' TO WS-PO-OPEN END-IF END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00' DISPLAY 'ERROR OUTPUT CLOSE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE 'N' TO WS-ER-OPEN END-IF END-IF"
+        ]
+    },
+    "performs": [
+        "VALIDATE-CALENDAR-DATE",
+        "CLOSE-FILES",
+        "UNTIL",
+        "PROCESS-POLICY",
+        "PERFORM",
+        "WRITE-ERROR",
+        "DETERMINE-STATUS",
+        "WRITE-POLICY",
+        "SET-MAX-DAY",
+        "CHECK-LEAP-YEAR"
+    ],
+    "calls": [],
+    "sql_statements": [],
+    "cics_statements": [],
+    "database_tables": [],
+    "database_columns": [],
+    "file_operations": [
+        {
+            "operation": "READ",
+            "file": "PIC"
+        },
+        {
+            "operation": "READ",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "ERROR"
+        },
+        {
+            "operation": "READ",
+            "file": "PERFORM"
+        },
+        {
+            "operation": "READ",
+            "file": "END-PERFORM"
+        },
+        {
+            "operation": "READ",
+            "file": "DISPLAY"
+        },
+        {
+            "operation": "WRITE",
+            "file": "PO-REC"
+        },
+        {
+            "operation": "WRITE",
+            "file": "ERROR"
+        },
+        {
+            "operation": "WRITE",
+            "file": "ER-REC"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "ERROR"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "POLICY-OUT"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "ERROR-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "PIC"
+        },
+        {
+            "operation": "OPEN",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ELSE"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ERROR"
+        },
+        {
+            "operation": "OPEN",
+            "file": "POLICY-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ERROR-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "END-IF"
+        }
+    ],
+    "moves": [
+        {
+            "source": "FUNCTION CURRENT-DATE(1:8)",
+            "target": "WS-CURRENT-DATE"
+        },
+        {
+            "source": "WS-CURRENT-DATE",
+            "target": "WS-DATE-IN"
+        },
+        {
+            "source": "12",
+            "target": "RETURN-CODE"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PO-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-ER-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-EOF"
+        },
+        {
+            "source": "PI-EFFECTIVE-DATE",
+            "target": "WS-DATE-IN"
+        },
+        {
+            "source": "'S001'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'INVALID POLICY EFFECTIVE DATE'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "PI-EXPIRY-DATE",
+            "target": "WS-DATE-IN"
+        },
+        {
+            "source": "'S002'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'INVALID POLICY EXPIRY DATE'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'S003'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'EXPIRY DATE BEFORE EFFECTIVE DATE'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "PI-REC",
+            "target": "PO-REC"
+        },
+        {
+            "source": "'CN'",
+            "target": "PO-POLICY-STATUS"
+        },
+        {
+            "source": "'PN'",
+            "target": "PO-POLICY-STATUS"
+        },
+        {
+            "source": "'AC'",
+            "target": "PO-POLICY-STATUS"
+        },
+        {
+            "source": "'EX'",
+            "target": "PO-POLICY-STATUS"
+        },
+        {
+            "source": "WS-CURRENT-DATE",
+            "target": "PO-UPDATE-DT"
+        },
+        {
+            "source": "PI-POLICY-NO",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-PO-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-ER-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-DATE-VALID"
+        },
+        {
+            "source": "WS-DATE-IN(1:4)",
+            "target": "WS-YEAR"
+        },
+        {
+            "source": "WS-DATE-IN(5:2)",
+            "target": "WS-MONTH"
+        },
+        {
+            "source": "WS-DATE-IN(7:2)",
+            "target": "WS-DAY"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-DATE-VALID"
+        },
+        {
+            "source": "31",
+            "target": "WS-MAX-DAY"
+        },
+        {
+            "source": "30",
+            "target": "WS-MAX-DAY"
+        },
+        {
+            "source": "29",
+            "target": "WS-MAX-DAY"
+        },
+        {
+            "source": "28",
+            "target": "WS-MAX-DAY"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-LEAP"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-LEAP"
+        }
+    ],
+    "conditions": [
+        "EXISTING STATUS = CN, PRESERVE CN",
+        "WS-DATE-VALID NOT = 'Y'",
+        "OPEN INPUT POLICY-IN IF WS-PI-ST = '00'",
+        "OPEN OUTPUT POLICY-OUT IF WS-PO-ST = '00'",
+        "OPEN OUTPUT ERROR-OUT IF WS-ER-ST = '00'",
+        "IF FATAL-ERROR",
+        "PERFORM UNTIL END-OF-FILE OR FATAL-ERROR",
+        "WS-PI-ST NOT = '00'",
+        "END-",
+        "FATAL-ERROR",
+        "GOBACK",
+        "PI-EXPIRY-DATE < PI-EFFECTIVE-DATE",
+        "END-IF",
+        "PI-POLICY-STATUS = 'CN'",
+        "WS-CURRENT-DATE < PI-EFFECTIVE-DATE",
+        "WS-CURRENT-DATE <= PI-EXPIRY-DATE",
+        "IF PO-POLICY-STATUS NOT = PI-POLICY-STATUS",
+        "WS-PO-ST = '00'",
+        "WS-ER-ST = '00'",
+        "WS-PI-OPEN = 'Y' CLOSE POLICY-IN IF WS-PI-ST NOT = '00'",
+        "END-IF IF WS-PO-OPEN = 'Y' CLOSE POLICY-OUT IF WS-PO-ST NOT = '00'",
+        "END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00'",
+        "WS-DATE-IN NUMERIC",
+        "WS-YEAR > ZERO AND WS-MONTH >= 1 AND WS-MONTH <= 12",
+        "WS-DAY >= 1 AND WS-DAY <= WS-MAX-DAY",
+        "WS-LEAP = 'Y'",
+        "END-EVALUATE",
+        "WS-REM400 = ZERO",
+        "WS-REM4 = ZERO AND WS-REM100 NOT = ZERO"
+    ],
+    "tree_sitter": {
+        "root_type": "start",
+        "has_error": true,
+        "node_count": 301,
+        "error_count": 1,
+        "node_types": {
+            "start": 1,
+            "ERROR": 1,
+            "comment_entry": 278,
+            "comment": 21
+        }
+    },
+    "relationships": [
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PI-REC"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-NO"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CUSTOMER-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-AGENT-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-PRODUCT-TYPE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-STATUS"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EFFECTIVE-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EXPIRY-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CREATE-DT"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-UPDATE-DT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PO-REC"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-POLICY-NO"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-CUSTOMER-ID"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-AGENT-ID"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-PRODUCT-TYPE"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-POLICY-STATUS"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-EFFECTIVE-DATE"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-EXPIRY-DATE"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-CREATE-DT"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-UPDATE-DT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "ER-REC"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-STATUS"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-ST"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PO-ST"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ER-ST"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-SW"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-EOF"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "END-OF-FILE"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-FATAL"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "FATAL-ERROR"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DATE-VALID"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PO-OPEN"
+        },
+        {
+            "source": "WS-SW",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ER-OPEN"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-DATE"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CURRENT-DATE"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DATE-IN"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-YEAR"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-MONTH"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DAY"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-MAX-DAY"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-LEAP"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-REM4"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-REM100"
+        },
+        {
+            "source": "WS-DATE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-REM400"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-COUNTERS"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-READ"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-WRITTEN"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CHANGED"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PENDING"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ACTIVE"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-EXPIRED"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CANCELLED"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-REJECTED"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-IO-ERRORS"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "MAIN"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GOBACK"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "PROCESS-POLICY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-IF"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "DETERMINE-STATUS"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-POLICY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CLOSE-FILES"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "VALIDATE-CALENDAR-DATE"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "SET-MAX-DAY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-EVALUATE"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CHECK-LEAP-YEAR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "VALIDATE-CALENDAR-DATE"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "CLOSE-FILES"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "UNTIL"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "PROCESS-POLICY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "PERFORM"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "DETERMINE-STATUS"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-POLICY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "SET-MAX-DAY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "PERFORMS",
+            "target": "CHECK-LEAP-YEAR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "PIC"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "PERFORM"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "END-PERFORM"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "READS",
+            "target": "DISPLAY"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "WRITES",
+            "target": "PO-REC"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "WRITES",
+            "target": "ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "WRITES",
+            "target": "ER-REC"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CLOSES",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CLOSES",
+            "target": "ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CLOSES",
+            "target": "POLICY-OUT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "CLOSES",
+            "target": "ERROR-OUT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "PIC"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "ELSE"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "ERROR"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "POLICY-OUT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "ERROR-OUT"
+        },
+        {
+            "source": "POLSTATUS.CBL",
+            "relationship": "OPENS",
+            "target": "END-IF"
+        }
+    ],
+    "parse_errors": [
+        {
+            "type": "TREE_SITTER_ERROR",
+            "count": 1
+        }
+    ]
+}

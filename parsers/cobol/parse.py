@@ -1,122 +1,140 @@
-from tree_sitter_language_pack import get_parser
 import json
 import re
 from pathlib import Path
 
+from tree_sitter_language_pack import get_parser
 
-# =========================================================
-# CONFIGURATION
-# =========================================================
 
-# Project paths
+# ============================================================
+# PROJECT CONFIGURATION
+# ============================================================
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# COBOL source programs in this project
-BASE_DIR = PROJECT_ROOT / "source" / "mainframe" / "cobol"
+BASE_DIR = (
+    PROJECT_ROOT
+    / "source"
+    / "mainframe"
+    / "cobol"
+)
 
-# Generated COBOL metadata
-OUTPUT_DIR = PROJECT_ROOT / "output" / "cobol"
+OUTPUT_DIR = (
+    PROJECT_ROOT
+    / "output"
+    / "cobol"
+)
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# ============================================================
+# TREE-SITTER
+# ============================================================
 
-# =========================================================
+parser = get_parser("cobol")
+
+
+# ============================================================
 # HELPERS
-# =========================================================
+# ============================================================
 
 def clean_spaces(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def node_text(node, source):
-    return source[
-        node.start_byte:node.end_byte
-    ].decode("utf-8", errors="replace").strip()
+def unique(values):
+    seen = set()
+    result = []
+
+    for value in values:
+        if value is None:
+            continue
+
+        if isinstance(value, str):
+            value = value.strip()
+
+        if not value:
+            continue
+
+        key = (
+            value
+            if isinstance(value, str)
+            else json.dumps(value, sort_keys=True)
+        )
+
+        if key not in seen:
+            seen.add(key)
+            result.append(value)
+
+    return result
 
 
-def walk(node):
-    stack = [node]
+def walk_tree(root):
+    """
+    Iterative AST traversal.
+
+    No recursive generator and no node.is_missing access.
+    """
+    stack = [root]
 
     while stack:
-        current = stack.pop()
-        yield current
+        node = stack.pop()
+        yield node
 
-        children = current.children
-        for child in reversed(children):
+        for child in reversed(node.children):
             stack.append(child)
 
 
-def line_number(source_text, position):
-    return source_text[:position].count("\n") + 1
+def line_number(source, position):
+    return source.count("\n", 0, position) + 1
 
 
-# =========================================================
-# FALLBACK SOURCE EXTRACTION
-# =========================================================
+# ============================================================
+# SOURCE EXTRACTION
+# ============================================================
 
-def fallback_extract(source_text, metadata):
+def extract_program_id(source):
+    match = re.search(
+        r"\bPROGRAM-ID\.\s*([A-Z0-9_-]+)",
+        source,
+        re.IGNORECASE,
+    )
 
-    # -----------------------------------------------------
-    # DIVISIONS
-    # -----------------------------------------------------
-
-    division_patterns = [
-        (
-            "identification_division",
-            r"\bIDENTIFICATION\s+DIVISION\s*\."
-        ),
-        (
-            "environment_division",
-            r"\bENVIRONMENT\s+DIVISION\s*\."
-        ),
-        (
-            "data_division",
-            r"\bDATA\s+DIVISION\s*\."
-        ),
-        (
-            "procedure_division",
-            r"\bPROCEDURE\s+DIVISION\s*\."
-        )
-    ]
-
-    existing = {
-        x["type"]
-        for x in metadata["divisions"]
-    }
-
-    for division_type, pattern in division_patterns:
-
-        if division_type in existing:
-            continue
-
-        match = re.search(
-            pattern,
-            source_text,
-            re.IGNORECASE
-        )
-
-        if match:
-
-            metadata["divisions"].append({
-                "type": division_type,
-                "text": match.group(0),
-                "start_line": line_number(
-                    source_text,
-                    match.start()
-                )
-            })
+    return (
+        match.group(1).upper()
+        if match
+        else None
+    )
 
 
-    # -----------------------------------------------------
-    # PARAGRAPHS
-    # -----------------------------------------------------
+def extract_divisions(source):
+    matches = re.findall(
+        r"^\s*([A-Z0-9-]+)\s+DIVISION\.",
+        source,
+        re.MULTILINE | re.IGNORECASE,
+    )
 
-    existing = {
-        x["text"].rstrip(".").upper()
-        for x in metadata["paragraphs"]
-    }
+    return unique(
+        [x.upper() for x in matches]
+    )
 
-    paragraph_pattern = re.compile(
+
+def extract_sections(source):
+    matches = re.findall(
+        r"^\s*([A-Z0-9-]+)\s+SECTION\.",
+        source,
+        re.MULTILINE | re.IGNORECASE,
+    )
+
+    return unique(
+        [x.upper() for x in matches]
+    )
+
+
+def extract_paragraphs(source):
+    paragraphs = []
+
+    pattern = re.compile(
         r"(?m)^[ \t]{0,11}"
         r"([A-Z][A-Z0-9-]*|[0-9][0-9A-Z-]*)"
         r"\.\s*$"
@@ -133,1224 +151,859 @@ def fallback_extract(source_text, metadata):
         "LOCAL-STORAGE",
         "LINKAGE",
         "INPUT-OUTPUT",
-        "INPUT-OUTPUT SECTION"
     }
 
-    for match in paragraph_pattern.finditer(
-        source_text
-    ):
-
+    for match in pattern.finditer(source):
         name = match.group(1).upper()
 
         if name in ignored:
             continue
 
-        if name not in existing:
-
-            metadata["paragraphs"].append({
-                "text": name + ".",
-                "start_line": line_number(
-                    source_text,
-                    match.start()
-                )
-            })
-
-            existing.add(name)
-
-
-    # -----------------------------------------------------
-    # SELECT FILES
-    # -----------------------------------------------------
-
-    existing = {
-        x.get("name", "").upper()
-        for x in metadata["files"]
-        if x.get("type") == "SELECT"
-    }
-
-    select_pattern = re.compile(
-        r"""
-        \bSELECT\s+
-        (?P<name>[A-Z0-9-]+)
-        (?P<body>.*?\.)
-        """,
-        re.IGNORECASE |
-        re.DOTALL |
-        re.VERBOSE
-    )
-
-    for match in select_pattern.finditer(
-        source_text
-    ):
-
-        name = match.group("name").upper()
-
-        if name in existing:
+        if name.endswith("DIVISION"):
             continue
 
-        text = (
-            "SELECT "
-            + name
-            + match.group("body")
-        )
-
-        info = {
-            "type": "SELECT",
-            "name": name,
-            "start_line": line_number(
-                source_text,
-                match.start()
-            )
-        }
-
-        assign = re.search(
-            r"\bASSIGN\s+TO\s+([A-Z0-9-]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        organization = re.search(
-            r"\bORGANIZATION\s+IS\s+(.+?)(?=\s+(?:ACCESS|RECORD|FILE)\b|\.)",
-            text,
-            re.IGNORECASE
-        )
-
-        access = re.search(
-            r"\bACCESS\s+MODE\s+IS\s+([A-Z]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        record_key = re.search(
-            r"\bRECORD\s+KEY\s+IS\s+([A-Z0-9-]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        status = re.search(
-            r"\bFILE\s+STATUS\s+IS\s+([A-Z0-9-]+)",
-            text,
-            re.IGNORECASE
-        )
-
-        if assign:
-            info["assign_to"] = assign.group(1).upper()
-
-        if organization:
-            info["organization"] = clean_spaces(
-                organization.group(1)
-            ).upper()
-
-        if access:
-            info["access_mode"] = access.group(1).upper()
-
-        if record_key:
-            info["record_key"] = record_key.group(1).upper()
-
-        if status:
-            info["file_status"] = status.group(1).upper()
-
-        metadata["files"].append(info)
-        existing.add(name)
-
-
-    # -----------------------------------------------------
-    # FD FILES
-    # -----------------------------------------------------
-
-    existing = {
-        x.get("name", "").upper()
-        for x in metadata["files"]
-        if x.get("type") in [
-            "FD",
-            "FD_RECOVERED"
-        ]
-    }
-
-    fd_pattern = re.compile(
-        r"(?m)^\s*FD\s+([A-Z0-9-]+)\s*\."
-    )
-
-    for match in fd_pattern.finditer(
-        source_text
-    ):
-
-        name = match.group(1).upper()
-
-        if name in existing:
+        if name.endswith("SECTION"):
             continue
 
-        metadata["files"].append({
-            "type": "FD_RECOVERED",
-            "name": name,
+        paragraphs.append({
+            "text": name + ".",
             "start_line": line_number(
-                source_text,
-                match.start()
-            )
-        })
-
-        existing.add(name)
-
-
-    # -----------------------------------------------------
-    # 77 VARIABLES
-    # -----------------------------------------------------
-
-    existing = {
-        x.get("name", "").upper()
-        for x in metadata["variables"]
-        if x.get("name")
-    }
-
-    variable_pattern = re.compile(
-        r"""
-        (?m)^\s*
-        77\s+
-        (?P<name>[A-Z0-9-]+)
-        \s+
-        PIC\s+
-        (?P<picture>[A-Z0-9()VXS9+-]+)
-        (?:
-            \s+
-            VALUE\s+
-            (?P<value>[^.]+)
-        )?
-        \.
-        """,
-        re.IGNORECASE |
-        re.VERBOSE
-    )
-
-    for match in variable_pattern.finditer(
-        source_text
-    ):
-
-        name = match.group("name").upper()
-
-        if name in existing:
-            continue
-
-        variable = {
-            "name": name,
-            "level": 77,
-            "picture": match.group("picture").upper(),
-            "start_line": line_number(
-                source_text,
-                match.start()
-            )
-        }
-
-        if match.group("value"):
-            variable["value"] = clean_spaces(
-                match.group("value")
-            )
-
-        metadata["variables"].append(variable)
-        existing.add(name)
-
-
-    # -----------------------------------------------------
-    # COPYBOOKS
-    # -----------------------------------------------------
-
-    existing = {
-        x.get("name", "").upper()
-        for x in metadata["copybooks"]
-        if x.get("name")
-    }
-
-    copy_pattern = re.compile(
-        r"(?m)^\s*COPY\s+([A-Z0-9-]+)\s*\."
-    )
-
-    for match in copy_pattern.finditer(
-        source_text
-    ):
-
-        name = match.group(1).upper()
-
-        if name in existing:
-            continue
-
-        metadata["copybooks"].append({
-            "name": name,
-            "start_line": line_number(
-                source_text,
-                match.start()
-            )
-        })
-
-        existing.add(name)
-
-    return metadata
-
-
-# =========================================================
-# RECORD / FIELD EXTRACTION
-# =========================================================
-
-def extract_records(source_text):
-
-    records = []
-
-    record_pattern = re.compile(
-        r"""
-        ^\s*
-        01\s+
-        (?P<record>[A-Z0-9-]+)
-        \s*\.
-        """,
-        re.IGNORECASE |
-        re.MULTILINE |
-        re.VERBOSE
-    )
-
-    field_pattern = re.compile(
-        r"""
-        ^\s*
-        (?P<level>0[25])
-        \s+
-        (?P<name>[A-Z0-9-]+)
-        \s+
-        PIC\s+
-        (?P<picture>[A-Z0-9()VXS9+-]+)
-        (?:
-            \s+VALUE\s+(?P<value>[^.]+)
-        )?
-        \s*\.
-        """,
-        re.IGNORECASE |
-        re.MULTILINE |
-        re.VERBOSE
-    )
-
-    matches = list(
-        record_pattern.finditer(source_text)
-    )
-
-    for i, match in enumerate(matches):
-
-        start = match.start()
-
-        if i + 1 < len(matches):
-            end = matches[i + 1].start()
-        else:
-            end = len(source_text)
-
-        block = source_text[start:end]
-
-        record = {
-            "record_name": match.group("record").upper(),
-            "level": 1,
-            "start_line": line_number(
-                source_text,
-                start
+                source,
+                match.start(),
             ),
-            "fields": []
+        })
+
+    return unique(paragraphs)
+
+
+def extract_copybooks(source):
+    matches = re.findall(
+        r"\bCOPY\s+([A-Z0-9_-]+)",
+        source,
+        re.IGNORECASE,
+    )
+
+    return [
+        {"name": name.upper()}
+        for name in unique(matches)
+    ]
+
+
+# ============================================================
+# FILE DEFINITIONS
+# ============================================================
+
+def extract_files(source):
+    files = {}
+
+    for match in re.finditer(
+        r"\bSELECT\s+([A-Z0-9-]+)"
+        r"(?:\s+ASSIGN\s+TO\s+([A-Z0-9-]+))?"
+        r"(.*?)(?=\.)",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        name = match.group(1).upper()
+
+        assign_to = (
+            match.group(2).upper()
+            if match.group(2)
+            else None
+        )
+
+        definition = match.group(3).upper()
+
+        if "LINE SEQUENTIAL" in definition:
+            organization = "LINE SEQUENTIAL"
+        elif "INDEXED" in definition:
+            organization = "INDEXED"
+        elif "RELATIVE" in definition:
+            organization = "RELATIVE"
+        elif "SEQUENTIAL" in definition:
+            organization = "SEQUENTIAL"
+        else:
+            organization = None
+
+        files[name] = {
+            "name": name,
+            "assign_to": assign_to,
+            "organization": organization,
+            "status_variable": None,
         }
 
-        for field_match in field_pattern.finditer(
-            block
-        ):
+    for match in re.finditer(
+        r"\bSELECT\s+([A-Z0-9-]+).*?"
+        r"\bFILE\s+STATUS\s+IS\s+([A-Z0-9-]+)",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        name = match.group(1).upper()
+        status = match.group(2).upper()
 
-            field = {
-                "name": field_match.group("name").upper(),
-                "level": int(
-                    field_match.group("level")
-                ),
-                "picture": field_match.group(
-                    "picture"
-                ).upper(),
-                "start_line": (
-                    line_number(
-                        source_text,
-                        start
-                    )
-                    + block[
-                        :field_match.start()
-                    ].count("\n")
-                )
+        if name in files:
+            files[name]["status_variable"] = status
+
+    for match in re.finditer(
+        r"^\s*FD\s+([A-Z0-9-]+)\.",
+        source,
+        re.MULTILINE | re.IGNORECASE,
+    ):
+        name = match.group(1).upper()
+
+        if name not in files:
+            files[name] = {
+                "name": name,
+                "assign_to": None,
+                "organization": None,
+                "status_variable": None,
             }
 
-            if field_match.group("value"):
-                field["value"] = clean_spaces(
-                    field_match.group("value")
-                )
+    for match in re.finditer(
+        r"^\s*SD\s+([A-Z0-9-]+)\.",
+        source,
+        re.MULTILINE | re.IGNORECASE,
+    ):
+        name = match.group(1).upper()
 
-            record["fields"].append(field)
+        files[name] = {
+            "name": name,
+            "assign_to": None,
+            "organization": "SORT",
+            "status_variable": None,
+        }
 
-        records.append(record)
+    return list(files.values())
+
+
+# ============================================================
+# VARIABLES / RECORDS
+# ============================================================
+
+def extract_variables(source):
+    variables = []
+
+    pattern = re.compile(
+        r"^\s*(\d{1,2})\s+"
+        r"([A-Z0-9-]+)"
+        r"(?:\s+PIC(?:TURE)?\s+([^\s.]+))?"
+        r"(?:\s+VALUE\s+(.+?))?"
+        r"\s*\.",
+        re.MULTILINE | re.IGNORECASE,
+    )
+
+    for match in pattern.finditer(source):
+        level = int(match.group(1))
+
+        variables.append({
+            "level": level,
+            "name": match.group(2).upper(),
+            "picture": (
+                match.group(3).upper()
+                if match.group(3)
+                else None
+            ),
+            "value": (
+                match.group(4).strip()
+                if match.group(4)
+                else None
+            ),
+            "start_line": line_number(
+                source,
+                match.start(),
+            ),
+        })
+
+    return variables
+
+
+def extract_records(variables):
+    records = []
+    current = None
+
+    for variable in variables:
+
+        if variable["level"] == 1:
+            current = {
+                "record_name": variable["name"],
+                "level": 1,
+                "fields": [],
+                "start_line": variable.get(
+                    "start_line"
+                ),
+            }
+
+            records.append(current)
+            continue
+
+        if current is not None:
+            if variable["level"] > 1:
+                current["fields"].append({
+                    "level": variable["level"],
+                    "name": variable["name"],
+                    "picture": variable.get("picture"),
+                    "value": variable.get("value"),
+                    "start_line": variable.get(
+                        "start_line"
+                    ),
+                })
 
     return records
 
 
-# =========================================================
+# ============================================================
+# OPERATIONS
+# ============================================================
+
+def extract_operations(source):
+    operations = {
+        "perform": [],
+        "read": [],
+        "write": [],
+        "move": [],
+        "open": [],
+        "close": [],
+        "display": [],
+        "if": [],
+        "goto": [],
+        "add": [],
+    }
+
+    patterns = {
+        "perform": r"\bPERFORM\b.*?(?=\.)",
+        "read": r"\bREAD\b.*?(?=\.)",
+        "write": r"\bWRITE\b.*?(?=\.)",
+        "move": r"\bMOVE\b.*?(?=\.)",
+        "open": r"\bOPEN\b.*?(?=\.)",
+        "close": r"\bCLOSE\b.*?(?=\.)",
+        "display": r"\bDISPLAY\b.*?(?=\.)",
+        "goto": r"\bGO\s+TO\b.*?(?=\.)",
+        "add": r"\bADD\b.*?(?=\.)",
+    }
+
+    for key, pattern in patterns.items():
+        matches = re.findall(
+            pattern,
+            source,
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        for match in matches:
+            text = clean_spaces(match)
+
+            if text and len(text) <= 500:
+                operations[key].append(text)
+
+        operations[key] = unique(
+            operations[key]
+        )
+
+    # IF needs special handling.
+    for match in re.finditer(
+        r"\bIF\s+(.+?)(?=\b"
+        r"(?:END-IF|MOVE|DISPLAY|PERFORM|READ|"
+        r"WRITE|COMPUTE|ADD|SUBTRACT|MULTIPLY|DIVIDE)\b|\.)",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        condition = clean_spaces(
+            match.group(1)
+        )
+
+        if condition:
+            operations["if"].append(
+                "IF " + condition
+            )
+
+    operations["if"] = unique(
+        operations["if"]
+    )
+
+    return operations
+
+
+def extract_performs(source):
+    matches = re.findall(
+        r"\bPERFORM\s+([A-Z0-9-]+)",
+        source,
+        re.IGNORECASE,
+    )
+
+    return unique(
+        [x.upper() for x in matches]
+    )
+
+
+def extract_calls(source):
+    matches = re.findall(
+        r"\bCALL\s+['\"]?([A-Z0-9_-]+)",
+        source,
+        re.IGNORECASE,
+    )
+
+    return unique(
+        [x.upper() for x in matches]
+    )
+
+
+def extract_sql(source):
+    statements = []
+
+    for match in re.finditer(
+        r"EXEC\s+SQL(.*?)END-EXEC",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        statements.append(
+            clean_spaces(match.group(1))
+        )
+
+    return unique(statements)
+
+
+def extract_database_tables(sql_statements):
+    tables = []
+
+    for sql in sql_statements:
+        matches = re.findall(
+            r"\b(?:FROM|INTO|UPDATE|JOIN)"
+            r"\s+([A-Z0-9_.-]+)",
+            sql,
+            re.IGNORECASE,
+        )
+
+        tables.extend(
+            [x.upper() for x in matches]
+        )
+
+    return unique(tables)
+
+
+def extract_file_operations(source):
+    operations = []
+
+    patterns = [
+        ("READ", r"\bREAD\s+([A-Z0-9-]+)"),
+        ("WRITE", r"\bWRITE\s+([A-Z0-9-]+)"),
+        ("REWRITE", r"\bREWRITE\s+([A-Z0-9-]+)"),
+        ("DELETE", r"\bDELETE\s+([A-Z0-9-]+)"),
+        ("CLOSE", r"\bCLOSE\s+([A-Z0-9-]+)"),
+    ]
+
+    for operation, pattern in patterns:
+        for match in re.finditer(
+            pattern,
+            source,
+            re.IGNORECASE,
+        ):
+            operations.append({
+                "operation": operation,
+                "file": match.group(1).upper(),
+            })
+
+    for match in re.finditer(
+        r"\bOPEN\s+"
+        r"(?:INPUT|OUTPUT|I-O|EXTEND)?\s*"
+        r"([A-Z0-9-]+)",
+        source,
+        re.IGNORECASE,
+    ):
+        operations.append({
+            "operation": "OPEN",
+            "file": match.group(1).upper(),
+        })
+
+    return unique(operations)
+
+
+def extract_moves(source):
+    moves = []
+
+    pattern = re.compile(
+        r"\bMOVE\s+(.+?)\s+TO\s+([A-Z0-9-]+)",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    for match in pattern.finditer(source):
+        source_value = clean_spaces(
+            match.group(1)
+        )
+
+        if len(source_value) <= 200:
+            moves.append({
+                "source": source_value,
+                "target": match.group(2).upper(),
+            })
+
+    return unique(moves)
+
+
+def extract_conditions(source):
+    conditions = []
+
+    pattern = re.compile(
+        r"\bIF\s+(.+?)(?=\b"
+        r"(?:MOVE|DISPLAY|PERFORM|READ|WRITE|"
+        r"COMPUTE|ADD|SUBTRACT|MULTIPLY|DIVIDE|"
+        r"END-IF)\b|\.)",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    for match in pattern.finditer(source):
+        condition = clean_spaces(
+            match.group(1)
+        )
+
+        if 0 < len(condition) <= 300:
+            conditions.append(condition)
+
+    return unique(conditions)
+
+
+def extract_cics(source):
+    statements = []
+
+    for match in re.finditer(
+        r"EXEC\s+CICS(.*?)END-EXEC",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        statements.append(
+            clean_spaces(match.group(1))
+        )
+
+    return unique(statements)
+
+
+# ============================================================
+# SAFE TREE-SITTER METADATA
+# ============================================================
+
+def extract_tree_metadata(root):
+    """
+    Safe Tree-sitter metadata extraction.
+
+    We only count node types here.
+    We intentionally do NOT access:
+        node.start_point
+        node.end_point
+        node.text
+        node.is_missing
+        node.children recursively
+
+    This keeps the metadata stage safe for the
+    COBOL grammar on Python 3.14.
+    """
+
+    node_count = 0
+    error_count = 0
+    type_counts = {}
+
+    stack = [root]
+
+    while stack:
+        node = stack.pop()
+
+        node_count += 1
+
+        node_type = node.type
+
+        type_counts[node_type] = (
+            type_counts.get(node_type, 0) + 1
+        )
+
+        if node_type == "ERROR":
+            error_count += 1
+
+        for child in reversed(node.children):
+            stack.append(child)
+
+    return {
+        "root_type": root.type,
+        "has_error": root.has_error,
+        "node_count": node_count,
+        "error_count": error_count,
+        "node_types": type_counts,
+    }
+
+# ============================================================
 # RELATIONSHIPS
-# =========================================================
+# ============================================================
 
-def extract_relationships(
-    file_name,
-    metadata
-):
-
+def extract_relationships(file_name, metadata):
     relationships = []
 
-    # -----------------------------------------------------
-    # READ
-    # -----------------------------------------------------
+    def add(source, relationship, target):
+        if source and target:
+            relationships.append({
+                "source": source,
+                "relationship": relationship,
+                "target": target,
+            })
 
-    for operation in metadata["operations"]["read"]:
-
-        match = re.search(
-            r"\bREAD\s+([A-Z0-9-]+)",
-            operation,
-            re.IGNORECASE
+    for copybook in metadata["copybooks"]:
+        add(
+            file_name,
+            "USES_COPYBOOK",
+            copybook["name"],
         )
-
-        if match:
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "READS",
-                "target": match.group(1).upper()
-            })
-
-
-    # -----------------------------------------------------
-    # WRITE
-    # -----------------------------------------------------
-
-    for operation in metadata["operations"]["write"]:
-
-        match = re.search(
-            r"\bWRITE\s+([A-Z0-9-]+)",
-            operation,
-            re.IGNORECASE
-        )
-
-        if not match:
-            continue
-
-        write_target = match.group(1).upper()
-
-        resolved_file = None
-
-        for item in metadata["files"]:
-
-            name = item.get("name")
-
-            if name and name.upper() == write_target:
-
-                resolved_file = name.upper()
-                break
-
-        if resolved_file is None:
-
-            if write_target.endswith("-RECORD"):
-
-                candidate = (
-                    write_target[:-7]
-                    .rstrip("-")
-                )
-
-                for item in metadata["files"]:
-
-                    name = item.get("name")
-
-                    if name and name.upper() == candidate:
-
-                        resolved_file = candidate
-                        break
-
-        if resolved_file:
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "WRITES",
-                "target": resolved_file
-            })
-
-            relationships.append({
-                "source": resolved_file,
-                "relationship": "WRITES_RECORD",
-                "target": write_target
-            })
-
-        else:
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "WRITES",
-                "target": write_target
-            })
-
-
-    # -----------------------------------------------------
-    # COPYBOOKS
-    # -----------------------------------------------------
-
-    for item in metadata["copybooks"]:
-
-        if item.get("name"):
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "USES_COPYBOOK",
-                "target": item["name"]
-            })
-
-
-    # -----------------------------------------------------
-    # RECORDS
-    # -----------------------------------------------------
 
     for record in metadata["records"]:
-
-        relationships.append({
-            "source": file_name,
-            "relationship": "CONTAINS_RECORD",
-            "target": record["record_name"]
-        })
+        add(
+            file_name,
+            "CONTAINS_RECORD",
+            record["record_name"],
+        )
 
         for field in record["fields"]:
-
-            relationships.append({
-                "source": record["record_name"],
-                "relationship": "CONTAINS_FIELD",
-                "target": field["name"]
-            })
-
-
-    # -----------------------------------------------------
-    # PARAGRAPHS
-    # -----------------------------------------------------
+            add(
+                record["record_name"],
+                "CONTAINS_FIELD",
+                field["name"],
+            )
 
     for paragraph in metadata["paragraphs"]:
-
-        name = paragraph["text"].rstrip(".")
-
-        relationships.append({
-            "source": file_name,
-            "relationship": "CONTAINS_PARAGRAPH",
-            "target": name
-        })
-
-
-    # -----------------------------------------------------
-    # PERFORM
-    # -----------------------------------------------------
-
-    for operation in metadata["operations"]["perform"]:
-
-        match = re.search(
-            r"PERFORM\s+([A-Z0-9-]+)",
-            operation,
-            re.IGNORECASE
+        add(
+            file_name,
+            "CONTAINS_PARAGRAPH",
+            paragraph["text"].rstrip("."),
         )
 
-        if match:
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "PERFORMS",
-                "target": match.group(1).upper()
-            })
-
-
-    # -----------------------------------------------------
-    # OPEN
-    # -----------------------------------------------------
-
-    for operation in metadata["operations"]["open"]:
-
-        match = re.search(
-            r"OPEN\s+(?:INPUT|OUTPUT|I-O|EXTEND)?\s*([A-Z0-9-]+)",
-            operation,
-            re.IGNORECASE
+    for target in metadata["performs"]:
+        add(
+            file_name,
+            "PERFORMS",
+            target,
         )
 
-        if match:
-
-            relationships.append({
-                "source": file_name,
-                "relationship": "OPENS",
-                "target": match.group(1).upper()
-            })
-
-
-    # -----------------------------------------------------
-    # CLOSE
-    # -----------------------------------------------------
-
-    for operation in metadata["operations"]["close"]:
-
-        match = re.search(
-            r"CLOSE\s+([A-Z0-9-]+)",
-            operation,
-            re.IGNORECASE
+    for target in metadata["calls"]:
+        add(
+            file_name,
+            "CALLS",
+            target,
         )
 
-        if match:
+    for table in metadata["database_tables"]:
+        add(
+            file_name,
+            "USES_TABLE",
+            table,
+        )
 
-            relationships.append({
-                "source": file_name,
-                "relationship": "CLOSES",
-                "target": match.group(1).upper()
-            })
+    relationship_map = {
+        "READ": "READS",
+        "WRITE": "WRITES",
+        "REWRITE": "REWRITES",
+        "DELETE": "DELETES",
+        "OPEN": "OPENS",
+        "CLOSE": "CLOSES",
+    }
+
+    for operation in metadata["file_operations"]:
+        relationship = relationship_map.get(
+            operation["operation"]
+        )
+
+        if relationship:
+            add(
+                file_name,
+                relationship,
+                operation["file"],
+            )
+
+    return unique(relationships)
 
 
-    return relationships
-
-
-# =========================================================
-# PARSE ONE COBOL PROGRAM
-# =========================================================
+# ============================================================
+# PARSE ONE COBOL FILE
+# ============================================================
 
 def parse_cobol_file(file_path):
 
-    print("\n" + "=" * 80)
+    print()
+    print("=" * 80)
     print(f"PARSING: {file_path.name}")
     print("=" * 80)
 
-    with open(file_path, "rb") as f:
-        source = f.read()
+    source = file_path.read_bytes()
 
     source_text = source.decode(
         "utf-8",
-        errors="replace"
+        errors="replace",
     )
 
-    # Fresh native parser for each COBOL program.
-    parser = get_parser("cobol")
+    print("  [1/8] Tree-sitter parse...", flush=True)
 
     tree = parser.parse(source)
     root = tree.root_node
 
-    metadata = {
-        "file": file_path.name,
-        "root": root.type,
-        "has_errors": root.has_error,
+    print("  [2/8] Tree metadata...", flush=True)
 
-        "divisions": [],
-        "paragraphs": [],
-        "records": [],
-        "files": [],
-        "variables": [],
-        "copybooks": [],
+    tree_metadata = extract_tree_metadata(root)
 
-        "operations": {
-            "perform": [],
-            "read": [],
-            "write": [],
-            "move": [],
-            "open": [],
-            "close": [],
-            "display": [],
-            "if": [],
-            "goto": [],
-            "add": []
-        },
+    print("  [3/8] Source extraction...", flush=True)
 
-        "relationships": [],
-        "parse_errors": []
-    }
+    program_id = extract_program_id(source_text)
+    divisions = extract_divisions(source_text)
+    sections = extract_sections(source_text)
+    paragraphs = extract_paragraphs(source_text)
 
+    print("  [4/8] Data extraction...", flush=True)
 
-    # =====================================================
-    # TREE-SITTER EXTRACTION
-    # =====================================================
+    files = extract_files(source_text)
+    variables = extract_variables(source_text)
+    records = extract_records(variables)
+    copybooks = extract_copybooks(source_text)
 
-    for node in walk(root):
+    print("  [5/8] Operations...", flush=True)
 
-        node_type = node.type
-        text = node_text(node, source)
+    operations = extract_operations(source_text)
+    performs = extract_performs(source_text)
+    calls = extract_calls(source_text)
 
-        if node_type in [
-            "identification_division",
-            "environment_division",
-            "data_division",
-            "procedure_division"
-        ]:
+    print("  [6/8] I/O and database...", flush=True)
 
-            metadata["divisions"].append({
-                "type": node_type,
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "paragraph_header":
-
-            metadata["paragraphs"].append({
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "select_statement":
-
-            metadata["files"].append({
-                "type": "SELECT",
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "file_description":
-
-            metadata["files"].append({
-                "type": "FD",
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "data_description":
-
-            metadata["variables"].append({
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "copy_statement":
-
-            metadata["copybooks"].append({
-                "text": text,
-                "start_line": node.start_point.row + 1
-            })
-
-
-        elif node_type == "perform_statement_call_proc":
-
-            metadata["operations"]["perform"].append(
-                text
-            )
-
-
-        elif node_type == "read_statement":
-
-            metadata["operations"]["read"].append(
-                text
-            )
-
-
-        elif node_type == "write_statement":
-
-            metadata["operations"]["write"].append(
-                text
-            )
-
-
-        elif node_type == "move_statement":
-
-            metadata["operations"]["move"].append(
-                text
-            )
-
-
-        elif node_type == "open_statement":
-
-            metadata["operations"]["open"].append(
-                text
-            )
-
-
-        elif node_type == "close_statement":
-
-            metadata["operations"]["close"].append(
-                text
-            )
-
-
-        elif node_type == "display_statement":
-
-            metadata["operations"]["display"].append(
-                text
-            )
-
-
-        elif node_type == "if_header":
-
-            metadata["operations"]["if"].append(
-                text
-            )
-
-
-        elif node_type == "goto_statement":
-
-            metadata["operations"]["goto"].append(
-                text
-            )
-
-
-        elif node_type == "add_statement":
-
-            metadata["operations"]["add"].append(
-                text
-            )
-
-
-    # =====================================================
-    # PARSE ERRORS
-    # =====================================================
-
-    for node in walk(root):
-
-        if node.type != "ERROR":
-            continue
-
-        # Ignore header comment errors
-        if node.start_point.row <= 5:
-            continue
-
-        metadata["parse_errors"].append({
-            "text": node_text(node, source),
-            "start_line": node.start_point.row + 1,
-            "end_line": node.end_point.row + 1
-        })
-
-
-    # =====================================================
-    # FALLBACK EXTRACTION
-    # =====================================================
-
-    metadata = fallback_extract(
-        source_text,
-        metadata
+    sql_statements = extract_sql(source_text)
+    database_tables = extract_database_tables(
+        sql_statements
     )
 
-
-    # =====================================================
-    # RECORDS
-    # =====================================================
-
-    metadata["records"] = extract_records(
+    file_operations = extract_file_operations(
         source_text
     )
 
+    moves = extract_moves(source_text)
+    conditions = extract_conditions(source_text)
+    cics_statements = extract_cics(source_text)
 
-    # =====================================================
-        # =========================================================
-    # NORMALIZE + DEDUPLICATE METADATA
-    # =========================================================
+    print("  [7/8] Building metadata...", flush=True)
 
-    # ---------------------------------------------------------
-    # FILES
-    # ---------------------------------------------------------
+    metadata = {
+        "file": file_path.name,
+        "program_id": program_id,
 
-    unique_files = []
-    seen_files = set()
+        "parser": {
+            "name": "Tree-sitter",
+            "language": "COBOL",
+            "grammar": "tree-sitter-language-pack",
+        },
 
-    for item in metadata["files"]:
+        "root": root.type,
+        "has_errors": root.has_error,
 
-        file_type = item.get("type", "")
-        name = item.get("name")
+        "divisions": divisions,
+        "sections": sections,
+        "paragraphs": paragraphs,
 
-        # Tree-sitter SELECT may not have "name"
-        if not name and file_type == "SELECT":
+        "files": files,
+        "variables": variables,
+        "records": records,
+        "copybooks": copybooks,
 
-            match = re.search(
-                r"\bSELECT\s+([A-Z0-9-]+)",
-                item.get("text", ""),
-                re.IGNORECASE
-            )
+        "operations": operations,
 
-            if match:
-                name = match.group(1).upper()
+        "performs": performs,
+        "calls": calls,
 
-        # Tree-sitter FD may not have "name"
-        if not name and file_type == "FD":
+        "sql_statements": sql_statements,
+        "cics_statements": cics_statements,
 
-            match = re.search(
-                r"\bFD\s+([A-Z0-9-]+)",
-                item.get("text", ""),
-                re.IGNORECASE
-            )
+        "database_tables": database_tables,
+        "database_columns": [],
 
-            if match:
-                name = match.group(1).upper()
+        "file_operations": file_operations,
+        "moves": moves,
+        "conditions": conditions,
 
-        if name:
-            name = name.upper()
+        "tree_sitter": tree_metadata,
 
-        # Normalize SELECT
-        if file_type == "SELECT":
-            key = ("SELECT", name)
+        "relationships": [],
+        "parse_errors": [],
+    }
 
-        # Normalize FD / FD_RECOVERED
-        elif file_type in ("FD", "FD_RECOVERED"):
-            key = ("FD", name)
-
-        else:
-            key = (
-                file_type,
-                name,
-                item.get("start_line")
-            )
-
-        if key not in seen_files:
-
-            seen_files.add(key)
-
-            # Make sure recovered items have a name
-            if name:
-                item["name"] = name
-
-            # Normalize recovered FD type
-            if file_type == "FD_RECOVERED":
-                item["type"] = "FD"
-
-            unique_files.append(item)
-
-    metadata["files"] = unique_files
-
-
-    # ---------------------------------------------------------
-    # COPYBOOKS
-    # ---------------------------------------------------------
-
-    unique_copybooks = []
-    seen_copybooks = set()
-
-    for item in metadata["copybooks"]:
-
-        name = item.get("name")
-
-        # Tree-sitter representation:
-        # {"text": "COPY RPTEXTRACT."}
-
-        if not name:
-
-            match = re.search(
-                r"\bCOPY\s+([A-Z0-9-]+)",
-                item.get("text", ""),
-                re.IGNORECASE
-            )
-
-            if match:
-                name = match.group(1).upper()
-
-        if not name:
-            continue
-
-        name = name.upper()
-
-        if name not in seen_copybooks:
-
-            seen_copybooks.add(name)
-
-            metadata_item = {
-                "name": name,
-                "start_line": item.get("start_line")
-            }
-
-            unique_copybooks.append(
-                metadata_item
-            )
-
-    metadata["copybooks"] = unique_copybooks
-
-
-    # ---------------------------------------------------------
-    # DIVISIONS
-    # ---------------------------------------------------------
-
-    unique_divisions = []
-    seen_divisions = set()
-
-    for item in metadata["divisions"]:
-
-        key = item.get("type")
-
-        if key not in seen_divisions:
-
-            seen_divisions.add(key)
-            unique_divisions.append(item)
-
-    metadata["divisions"] = unique_divisions
-
-
-    # ---------------------------------------------------------
-    # PARAGRAPHS
-    # ---------------------------------------------------------
-
-    unique_paragraphs = []
-    seen_paragraphs = set()
-
-    for item in metadata["paragraphs"]:
-
-        name = (
-            item.get("text", "")
-            .strip()
-            .rstrip(".")
-            .upper()
-        )
-
-        if not name:
-            continue
-
-        if name not in seen_paragraphs:
-
-            seen_paragraphs.add(name)
-            unique_paragraphs.append(item)
-
-    metadata["paragraphs"] = unique_paragraphs
-
-
-    # ---------------------------------------------------------
-    # VARIABLES
-    # ---------------------------------------------------------
-
-    unique_variables = []
-    seen_variables = set()
-
-    for item in metadata["variables"]:
-
-        name = item.get("name")
-
-        if not name:
-
-            text = item.get("text", "")
-
-            match = re.search(
-                r"\b(?:77|01|05)\s+([A-Z0-9-]+)",
-                text,
-                re.IGNORECASE
-            )
-
-            if match:
-                name = match.group(1).upper()
-
-        if not name:
-            continue
-
-        name = name.upper()
-
-        if name not in seen_variables:
-
-            seen_variables.add(name)
-            item["name"] = name
-
-            unique_variables.append(item)
-
-    metadata["variables"] = unique_variables
-
-
-    # =====================================================
-    # RELATIONSHIPS
-    # =====================================================
+    print("  [8/8] Relationships...", flush=True)
 
     metadata["relationships"] = extract_relationships(
         file_path.name,
-        metadata
+        metadata,
     )
 
+    if tree_metadata["error_count"] > 0:
+        metadata["parse_errors"] = [
+            {
+                "type": "TREE_SITTER_ERROR",
+                "count": tree_metadata["error_count"],
+            }
+        ]
+
+    print("  PARSE COMPLETE", flush=True)
 
     return metadata
 
 
-# =========================================================
-# BATCH PARSING
-# =========================================================
+# ============================================================
+# FILE DISCOVERY
+# ============================================================
+
+def discover_cobol_files():
+
+    if not BASE_DIR.exists():
+        return []
+
+    return sorted(
+        [
+            path
+            for path in BASE_DIR.iterdir()
+            if path.is_file()
+            and path.suffix.lower() in {
+                ".cbl",
+                ".cob",
+            }
+        ],
+        key=lambda path: path.name.lower(),
+    )
+
+
+# ============================================================
+# BATCH
+# ============================================================
 
 def main():
-
-    cobol_files = sorted(
-        BASE_DIR.glob("*.CBL")
-    )
 
     print("=" * 80)
     print("COBOL BATCH PARSER")
     print("=" * 80)
 
+    cobol_files = discover_cobol_files()
+
     print(
-        f"COBOL files found: "
-        f"{len(cobol_files)}"
+        f"COBOL files found: {len(cobol_files)}"
     )
 
     for file_path in cobol_files:
-        print(f"  - {file_path.name}")
-
-    print()
-
-    if not cobol_files:
         print(
-            f"No COBOL files found in: "
-            f"{BASE_DIR}"
+            f"  - {file_path.name}"
         )
-        return
 
-    import subprocess
+    all_metadata = []
 
     successful = 0
     failed = 0
 
     for file_path in cobol_files:
 
-        print("=" * 80)
-        print(
-            f"PARSING: "
-            f"{file_path.name}"
+        output_file = (
+            OUTPUT_DIR
+            / f"{file_path.stem}_metadata.json"
         )
-        print("=" * 80)
 
-        worker_code = f'''
-import sys
-import json
-from pathlib import Path
+        # Remove stale zero-byte output.
+        if output_file.exists():
+            output_file.unlink()
 
-sys.path.insert(0, "parsers/cobol")
+        try:
 
-import parse
-
-file_path = Path(r"{file_path}")
-
-metadata = parse.parse_cobol_file(
-    file_path
-)
-
-output_file = (
-    parse.OUTPUT_DIR /
-    f"{{file_path.stem}}_metadata.json"
-)
-
-with output_file.open(
-    "w",
-    encoding="utf-8"
-) as file:
-
-    json.dump(
-        metadata,
-        file,
-        indent=4,
-        ensure_ascii=False
-    )
-
-print(
-    f"OUTPUT: {{output_file}}",
-    flush=True
-)
-
-print(
-    f"SIZE: {{output_file.stat().st_size}}",
-    flush=True
-)
-'''
-
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                worker_code
-            ],
-            cwd=str(
-                PROJECT_ROOT
+            metadata = parse_cobol_file(
+                file_path
             )
-        )
 
-        if result.returncode == 0:
+            output_file.write_text(
+                json.dumps(
+                    metadata,
+                    indent=4,
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            all_metadata.append(
+                metadata
+            )
 
             successful += 1
 
             print(
-                f"SUCCESS: "
-                f"{file_path.name}"
+                f"SUCCESS: {file_path.name}"
             )
 
-        else:
+            print(
+                f"  Output: {output_file}"
+            )
+
+            print(
+                f"  Size: "
+                f"{output_file.stat().st_size}"
+            )
+
+            print(
+                f"  Records: "
+                f"{len(metadata['records'])}"
+            )
+
+            print(
+                f"  Files: "
+                f"{len(metadata['files'])}"
+            )
+
+            print(
+                f"  Variables: "
+                f"{len(metadata['variables'])}"
+            )
+
+            print(
+                f"  Relationships: "
+                f"{len(metadata['relationships'])}"
+            )
+
+        except Exception as exc:
 
             failed += 1
 
             print(
-                f"FAILED: "
-                f"{file_path.name}"
+                f"FAILED: {file_path.name}"
             )
 
             print(
-                f"Exit code: "
-                f"{result.returncode}"
+                f"  {type(exc).__name__}: {exc}"
             )
 
-        print()
+            if output_file.exists():
+                output_file.unlink()
 
-    # =====================================================
-    # COMBINED SEMANTIC DATA
-    # =====================================================
-
-    semantic_output = (
-        OUTPUT_DIR /
-        "semantic_data.json"
-    )
-
-    combined_metadata = {
-        "programs": []
+    semantic_data = {
+        "source_directory": str(BASE_DIR),
+        "total_programs": len(all_metadata),
+        "programs": all_metadata,
     }
 
-    for file_path in cobol_files:
+    semantic_output = (
+        OUTPUT_DIR
+        / "semantic_data.json"
+    )
 
-        metadata_file = (
-            OUTPUT_DIR /
-            f"{file_path.stem}_metadata.json"
-        )
-
-        if not metadata_file.exists():
-            continue
-
-        try:
-
-            with metadata_file.open(
-                "r",
-                encoding="utf-8"
-            ) as file:
-
-                metadata = json.load(
-                    file
-                )
-
-            combined_metadata[
-                "programs"
-            ].append(
-                metadata
-            )
-
-        except Exception as error:
-
-            print(
-                f"WARNING reading "
-                f"{metadata_file.name}: "
-                f"{error}"
-            )
-
-    with semantic_output.open(
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            combined_metadata,
-            file,
+    semantic_output.write_text(
+        json.dumps(
+            semantic_data,
             indent=4,
-            ensure_ascii=False
-        )
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
+    print()
     print("=" * 80)
     print("BATCH PARSING COMPLETED")
     print("=" * 80)
 
     print(
-        f"Programs found : "
-        f"{len(cobol_files)}"
+        f"Programs found : {len(cobol_files)}"
     )
 
     print(
-        f"Programs parsed: "
-        f"{successful}"
+        f"Programs parsed: {successful}"
     )
 
     print(
-        f"Programs failed: "
-        f"{failed}"
+        f"Programs failed: {failed}"
     )
 
     print(
@@ -1358,27 +1011,6 @@ print(
         f"{semantic_output}"
     )
 
-    print()
-    print("Generated files:")
-
-    for metadata_file in sorted(
-        OUTPUT_DIR.glob(
-            "*_metadata.json"
-        )
-    ):
-
-        print(
-            f"  {metadata_file.name}"
-        )
-
-    print(
-        f"  {semantic_output.name}"
-    )
-
 
 if __name__ == "__main__":
     main()
-
-
-if __name__ == "__main__":
-    main()      

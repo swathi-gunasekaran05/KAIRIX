@@ -1,0 +1,621 @@
+{
+    "file": "RPTEXTRACT.CBL",
+    "program_id": "RPTEXTRACT",
+    "parser": {
+        "name": "Tree-sitter",
+        "language": "COBOL",
+        "grammar": "tree-sitter-language-pack"
+    },
+    "root": "start",
+    "has_errors": true,
+    "divisions": [
+        "IDENTIFICATION",
+        "ENVIRONMENT",
+        "DATA",
+        "PROCEDURE"
+    ],
+    "sections": [
+        "INPUT-OUTPUT",
+        "FILE",
+        "WORKING-STORAGE"
+    ],
+    "paragraphs": [
+        {
+            "text": "MAIN-PARA.",
+            "start_line": 64
+        },
+        {
+            "text": "WRITE-KPI-SUMMARY.",
+            "start_line": 127
+        }
+    ],
+    "files": [
+        {
+            "name": "POLICY-IN",
+            "assign_to": null,
+            "organization": null,
+            "status_variable": null
+        },
+        {
+            "name": "PREMIUM-IN",
+            "assign_to": null,
+            "organization": null,
+            "status_variable": null
+        },
+        {
+            "name": "REPORT-OUT",
+            "assign_to": null,
+            "organization": null,
+            "status_variable": null
+        }
+    ],
+    "variables": [
+        {
+            "level": 1,
+            "name": "POLICY-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 27
+        },
+        {
+            "level": 5,
+            "name": "POL-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 29
+        },
+        {
+            "level": 5,
+            "name": "POL-CUSTOMER-ID",
+            "picture": "X(10)",
+            "value": null,
+            "start_line": 30
+        },
+        {
+            "level": 5,
+            "name": "POL-AGENT-ID",
+            "picture": "X(10)",
+            "value": null,
+            "start_line": 31
+        },
+        {
+            "level": 5,
+            "name": "POL-PRODUCT",
+            "picture": "X(02)",
+            "value": null,
+            "start_line": 32
+        },
+        {
+            "level": 5,
+            "name": "POL-STATUS",
+            "picture": "X(02)",
+            "value": null,
+            "start_line": 33
+        },
+        {
+            "level": 1,
+            "name": "PREMIUM-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 36
+        },
+        {
+            "level": 5,
+            "name": "PREM-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 38
+        },
+        {
+            "level": 5,
+            "name": "WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 39
+        },
+        {
+            "level": 5,
+            "name": "EARNED-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 40
+        },
+        {
+            "level": 1,
+            "name": "REPORT-OUT-REC",
+            "picture": "X(120)",
+            "value": null,
+            "start_line": 43
+        },
+        {
+            "level": 77,
+            "name": "EOF-POLICY",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 49
+        },
+        {
+            "level": 88,
+            "name": "END-OF-POLICY",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 51
+        },
+        {
+            "level": 77,
+            "name": "WS-UNEARNED",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 52
+        },
+        {
+            "level": 77,
+            "name": "WS-REPORT-MONTH",
+            "picture": "X(06)",
+            "value": "'202607'",
+            "start_line": 54
+        },
+        {
+            "level": 77,
+            "name": "WS-HEADER",
+            "picture": "X(120)",
+            "value": "'REPORT_MONTH|POLICY_NO|CUSTOMER_ID|AGENT_ID|PRODUCT|STATUS|WRITTEN_PREMIUM|EARNED_PREMIUM|UNEARNED_PREMIUM'",
+            "start_line": 57
+        }
+    ],
+    "records": [
+        {
+            "record_name": "POLICY-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "POL-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 29
+                },
+                {
+                    "level": 5,
+                    "name": "POL-CUSTOMER-ID",
+                    "picture": "X(10)",
+                    "value": null,
+                    "start_line": 30
+                },
+                {
+                    "level": 5,
+                    "name": "POL-AGENT-ID",
+                    "picture": "X(10)",
+                    "value": null,
+                    "start_line": 31
+                },
+                {
+                    "level": 5,
+                    "name": "POL-PRODUCT",
+                    "picture": "X(02)",
+                    "value": null,
+                    "start_line": 32
+                },
+                {
+                    "level": 5,
+                    "name": "POL-STATUS",
+                    "picture": "X(02)",
+                    "value": null,
+                    "start_line": 33
+                }
+            ],
+            "start_line": 27
+        },
+        {
+            "record_name": "PREMIUM-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PREM-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 38
+                },
+                {
+                    "level": 5,
+                    "name": "WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 39
+                },
+                {
+                    "level": 5,
+                    "name": "EARNED-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 40
+                }
+            ],
+            "start_line": 36
+        },
+        {
+            "record_name": "REPORT-OUT-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 77,
+                    "name": "EOF-POLICY",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 49
+                },
+                {
+                    "level": 88,
+                    "name": "END-OF-POLICY",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 51
+                },
+                {
+                    "level": 77,
+                    "name": "WS-UNEARNED",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 52
+                },
+                {
+                    "level": 77,
+                    "name": "WS-REPORT-MONTH",
+                    "picture": "X(06)",
+                    "value": "'202607'",
+                    "start_line": 54
+                },
+                {
+                    "level": 77,
+                    "name": "WS-HEADER",
+                    "picture": "X(120)",
+                    "value": "'REPORT_MONTH|POLICY_NO|CUSTOMER_ID|AGENT_ID|PRODUCT|STATUS|WRITTEN_PREMIUM|EARNED_PREMIUM|UNEARNED_PREMIUM'",
+                    "start_line": 57
+                }
+            ],
+            "start_line": 43
+        }
+    ],
+    "copybooks": [
+        {
+            "name": "RPTEXTRACT"
+        }
+    ],
+    "operations": {
+        "perform": [],
+        "read": [],
+        "write": [
+            "WRITE-KPI-SUMMARY"
+        ],
+        "move": [
+            "MOVE WS-REPORT-MONTH TO RPT-REPORT-MONTH MOVE POL-POLICY-NO TO RPT-POLICY-NO MOVE POL-CUSTOMER-ID TO RPT-CUSTOMER-ID MOVE POL-AGENT-ID TO RPT-AGENT-ID MOVE POL-PRODUCT TO RPT-PRODUCT MOVE POL-STATUS TO RPT-STATUS MOVE WRITTEN-PREMIUM TO RPT-WRITTEN-PREM MOVE EARNED-PREMIUM TO RPT-EARNED-PREM MOVE WS-UNEARNED TO RPT-UNEARNED-PREM WRITE REPORT-OUT-REC FROM REPORT-RECORD END-READ END-PERFORM PERFORM WRITE-KPI-SUMMARY CLOSE POLICY-IN PREMIUM-IN REPORT-OUT STOP RUN"
+        ],
+        "open": [],
+        "close": [
+            "CLOSE POLICY-IN PREMIUM-IN REPORT-OUT STOP RUN"
+        ],
+        "display": [],
+        "if": [],
+        "goto": [],
+        "add": []
+    },
+    "performs": [
+        "UNTIL",
+        "PERFORM"
+    ],
+    "calls": [],
+    "sql_statements": [],
+    "cics_statements": [],
+    "database_tables": [],
+    "database_columns": [],
+    "file_operations": [
+        {
+            "operation": "READ",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "PREMIUM-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "END-PERFORM"
+        },
+        {
+            "operation": "WRITE",
+            "file": "REPORT-OUT-REC"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "POLICY-IN"
+        }
+    ],
+    "moves": [
+        {
+            "source": "WS-REPORT-MONTH",
+            "target": "RPT-REPORT-MONTH"
+        },
+        {
+            "source": "POL-POLICY-NO",
+            "target": "RPT-POLICY-NO"
+        },
+        {
+            "source": "POL-CUSTOMER-ID",
+            "target": "RPT-CUSTOMER-ID"
+        },
+        {
+            "source": "POL-AGENT-ID",
+            "target": "RPT-AGENT-ID"
+        },
+        {
+            "source": "POL-PRODUCT",
+            "target": "RPT-PRODUCT"
+        },
+        {
+            "source": "POL-STATUS",
+            "target": "RPT-STATUS"
+        },
+        {
+            "source": "WRITTEN-PREMIUM",
+            "target": "RPT-WRITTEN-PREM"
+        },
+        {
+            "source": "EARNED-PREMIUM",
+            "target": "RPT-EARNED-PREM"
+        },
+        {
+            "source": "WS-UNEARNED",
+            "target": "RPT-UNEARNED-PREM"
+        },
+        {
+            "source": "'=============================================================='",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'MONTHLY KPI SUMMARY'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'TOTAL POLICIES : 14500'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'ACTIVE POLICIES : 13100'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'PENDING POLICIES : 300'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'EXPIRED POLICIES : 800'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'CANCELLED POLICIES : 300'",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "'WRITTEN = EARNED + UNEARNED : PASSED'",
+            "target": "REPORT-OUT-REC"
+        }
+    ],
+    "conditions": [],
+    "tree_sitter": {
+        "root_type": "start",
+        "has_error": true,
+        "node_count": 346,
+        "error_count": 4,
+        "node_types": {
+            "start": 1,
+            "program_definition": 1,
+            "identification_division": 1,
+            ".": 36,
+            "program_name": 1,
+            "environment_division": 1,
+            "input_output_section": 1,
+            "select_statement": 3,
+            "ERROR": 4,
+            "WORD": 64,
+            "assign_clause": 3,
+            "string": 15,
+            "organization_clause": 3,
+            "SEQUENTIAL": 3,
+            "data_division": 1,
+            "file_section": 1,
+            "file_description": 3,
+            "file_type": 3,
+            "FD": 3,
+            "file_description_entry": 3,
+            "record_description_list": 3,
+            "data_description": 15,
+            "level_number": 16,
+            "entry_name": 16,
+            "picture_clause": 13,
+            "picture_x": 10,
+            "picture_9": 3,
+            "working_storage_section": 1,
+            "copy_statement": 1,
+            "value_clause": 3,
+            "value_item": 3,
+            "procedure_division": 1,
+            "paragraph_header": 2,
+            "open_statement": 1,
+            "open_arg": 3,
+            "INPUT": 2,
+            "OUTPUT": 1,
+            "write_statement": 11,
+            "qualified_word": 46,
+            "perform_statement_loop": 1,
+            "perform_option": 1,
+            "expr": 2,
+            "read_statement": 2,
+            "at_end": 1,
+            "set_statement": 1,
+            "set_to_true_false": 1,
+            "not_at_end": 1,
+            "compute_statement": 1,
+            "arithmetic_x": 1,
+            "=": 1,
+            "-": 1,
+            "move_statement": 18,
+            "END_READ": 1,
+            "END_PERFORM": 1,
+            "perform_statement_call_proc": 1,
+            "perform_procedure": 1,
+            "label": 1,
+            "close_statement": 1,
+            "close_arg": 3,
+            "stop_statement": 1,
+            "period": 2
+        }
+    },
+    "relationships": [
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "USES_COPYBOOK",
+            "target": "RPTEXTRACT"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "POLICY-REC"
+        },
+        {
+            "source": "POLICY-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-POLICY-NO"
+        },
+        {
+            "source": "POLICY-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-CUSTOMER-ID"
+        },
+        {
+            "source": "POLICY-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-AGENT-ID"
+        },
+        {
+            "source": "POLICY-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-PRODUCT"
+        },
+        {
+            "source": "POLICY-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-STATUS"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PREMIUM-REC"
+        },
+        {
+            "source": "PREMIUM-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PREM-POLICY-NO"
+        },
+        {
+            "source": "PREMIUM-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PREMIUM-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "EARNED-PREMIUM"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "REPORT-OUT-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "EOF-POLICY"
+        },
+        {
+            "source": "REPORT-OUT-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "END-OF-POLICY"
+        },
+        {
+            "source": "REPORT-OUT-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-UNEARNED"
+        },
+        {
+            "source": "REPORT-OUT-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-REPORT-MONTH"
+        },
+        {
+            "source": "REPORT-OUT-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HEADER"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "MAIN-PARA"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-KPI-SUMMARY"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "PERFORMS",
+            "target": "UNTIL"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "PERFORMS",
+            "target": "PERFORM"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "READS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "READS",
+            "target": "PREMIUM-IN"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "READS",
+            "target": "END-PERFORM"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "WRITES",
+            "target": "REPORT-OUT-REC"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "CLOSES",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "RPTEXTRACT.CBL",
+            "relationship": "OPENS",
+            "target": "POLICY-IN"
+        }
+    ],
+    "parse_errors": [
+        {
+            "type": "TREE_SITTER_ERROR",
+            "count": 4
+        }
+    ]
+}
