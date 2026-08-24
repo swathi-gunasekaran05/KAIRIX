@@ -1,0 +1,2288 @@
+{
+    "file": "KPICALC.CBL",
+    "program_id": "KPIREPORT",
+    "parser": {
+        "name": "Tree-sitter",
+        "language": "COBOL",
+        "grammar": "tree-sitter-language-pack"
+    },
+    "root": "start",
+    "has_errors": false,
+    "divisions": [
+        "IDENTIFICATION",
+        "ENVIRONMENT",
+        "DATA",
+        "PROCEDURE"
+    ],
+    "sections": [
+        "INPUT-OUTPUT",
+        "FILE",
+        "WORKING-STORAGE"
+    ],
+    "paragraphs": [
+        {
+            "text": "MAIN.",
+            "start_line": 225
+        },
+        {
+            "text": "GOBACK.",
+            "start_line": 317
+        },
+        {
+            "text": "OPEN-FILES.",
+            "start_line": 319
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 375
+        },
+        {
+            "text": "READ-POLICY.",
+            "start_line": 377
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 417
+        },
+        {
+            "text": "READ-PREMIUM.",
+            "start_line": 419
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 459
+        },
+        {
+            "text": "PROCESS-MATCHED.",
+            "start_line": 461
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 559
+        },
+        {
+            "text": "HANDLE-MISSING-PREMIUM.",
+            "start_line": 561
+        },
+        {
+            "text": "HANDLE-ORPHAN-PREMIUM.",
+            "start_line": 575
+        },
+        {
+            "text": "WRITE-ERROR.",
+            "start_line": 589
+        },
+        {
+            "text": "WRITE-KPI-REPORT.",
+            "start_line": 611
+        },
+        {
+            "text": "WRITE-KPI-LINE.",
+            "start_line": 763
+        },
+        {
+            "text": "CLOSE-FILES.",
+            "start_line": 779
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 859
+        }
+    ],
+    "files": [
+        {
+            "name": "POLICY-IN",
+            "assign_to": "POLIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PI-ST"
+        },
+        {
+            "name": "PREMIUM-IN",
+            "assign_to": "PREMIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PR-ST"
+        },
+        {
+            "name": "KPI-OUT",
+            "assign_to": "KPIOUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-KO-ST"
+        },
+        {
+            "name": "ERROR-OUT",
+            "assign_to": "ERROUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-ER-ST"
+        }
+    ],
+    "variables": [
+        {
+            "level": 1,
+            "name": "PI-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 64
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 66
+        },
+        {
+            "level": 5,
+            "name": "PI-CUSTOMER-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 68
+        },
+        {
+            "level": 5,
+            "name": "PI-AGENT-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 70
+        },
+        {
+            "level": 5,
+            "name": "PI-PRODUCT-TYPE",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 72
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-STATUS",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 74
+        },
+        {
+            "level": 5,
+            "name": "PI-EFFECTIVE-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 76
+        },
+        {
+            "level": 5,
+            "name": "PI-EXPIRY-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 78
+        },
+        {
+            "level": 5,
+            "name": "PI-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 80
+        },
+        {
+            "level": 5,
+            "name": "PI-CREATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 82
+        },
+        {
+            "level": 5,
+            "name": "PI-UPDATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 84
+        },
+        {
+            "level": 1,
+            "name": "PRI-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 88
+        },
+        {
+            "level": 5,
+            "name": "PRI-PREMIUM-ID",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 90
+        },
+        {
+            "level": 5,
+            "name": "PRI-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 92
+        },
+        {
+            "level": 5,
+            "name": "PRI-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 94
+        },
+        {
+            "level": 5,
+            "name": "PRI-EARNED-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 96
+        },
+        {
+            "level": 5,
+            "name": "PRI-UNEARNED-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 98
+        },
+        {
+            "level": 5,
+            "name": "PRI-CALCULATION-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 100
+        },
+        {
+            "level": 1,
+            "name": "KPI-REC",
+            "picture": "X(80)",
+            "value": null,
+            "start_line": 104
+        },
+        {
+            "level": 1,
+            "name": "ER-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 108
+        },
+        {
+            "level": 5,
+            "name": "ER-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 110
+        },
+        {
+            "level": 5,
+            "name": "ER-CODE",
+            "picture": "X(4)",
+            "value": null,
+            "start_line": 112
+        },
+        {
+            "level": 5,
+            "name": "ER-MESSAGE",
+            "picture": "X(64)",
+            "value": null,
+            "start_line": 114
+        },
+        {
+            "level": 1,
+            "name": "WS-STATUS",
+            "picture": null,
+            "value": null,
+            "start_line": 118
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 120
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 122
+        },
+        {
+            "level": 5,
+            "name": "WS-KO-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 124
+        },
+        {
+            "level": 5,
+            "name": "WS-ER-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 126
+        },
+        {
+            "level": 1,
+            "name": "WS-SWITCHES",
+            "picture": null,
+            "value": null,
+            "start_line": 128
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 130
+        },
+        {
+            "level": 88,
+            "name": "PI-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 132
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 134
+        },
+        {
+            "level": 88,
+            "name": "PR-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 136
+        },
+        {
+            "level": 5,
+            "name": "WS-FATAL",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 138
+        },
+        {
+            "level": 88,
+            "name": "FATAL-ERROR",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 140
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 142
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 144
+        },
+        {
+            "level": 5,
+            "name": "WS-KO-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 146
+        },
+        {
+            "level": 5,
+            "name": "WS-ER-OPEN",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 148
+        },
+        {
+            "level": 1,
+            "name": "WS-SEQUENCE",
+            "picture": null,
+            "value": null,
+            "start_line": 150
+        },
+        {
+            "level": 5,
+            "name": "WS-PREV-PI-POLICY",
+            "picture": "X(12)",
+            "value": "LOW-VALUES",
+            "start_line": 152
+        },
+        {
+            "level": 5,
+            "name": "WS-PREV-PR-POLICY",
+            "picture": "X(12)",
+            "value": "LOW-VALUES",
+            "start_line": 154
+        },
+        {
+            "level": 1,
+            "name": "WS-COUNTS",
+            "picture": null,
+            "value": null,
+            "start_line": 156
+        },
+        {
+            "level": 5,
+            "name": "WS-TOTAL-POLICIES",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 158
+        },
+        {
+            "level": 5,
+            "name": "WS-ACTIVE",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 160
+        },
+        {
+            "level": 5,
+            "name": "WS-PENDING",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 162
+        },
+        {
+            "level": 5,
+            "name": "WS-EXPIRED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 164
+        },
+        {
+            "level": 5,
+            "name": "WS-CANCELLED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 166
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-COUNT",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 168
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-COUNT",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 170
+        },
+        {
+            "level": 5,
+            "name": "WS-UNKNOWN-STATUS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 172
+        },
+        {
+            "level": 5,
+            "name": "WS-UNKNOWN-PROD",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 174
+        },
+        {
+            "level": 5,
+            "name": "WS-MISSING-PREM",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 176
+        },
+        {
+            "level": 5,
+            "name": "WS-ORPHAN-PREM",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 178
+        },
+        {
+            "level": 5,
+            "name": "WS-RECON-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 180
+        },
+        {
+            "level": 5,
+            "name": "WS-DQ-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 182
+        },
+        {
+            "level": 5,
+            "name": "WS-IO-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 184
+        },
+        {
+            "level": 1,
+            "name": "WS-TOTALS",
+            "picture": null,
+            "value": null,
+            "start_line": 186
+        },
+        {
+            "level": 5,
+            "name": "WS-WRITTEN",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 188
+        },
+        {
+            "level": 5,
+            "name": "WS-EARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 190
+        },
+        {
+            "level": 5,
+            "name": "WS-UNEARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 192
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-WRITTEN",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 194
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-EARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 196
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-UNEARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 198
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-WRITTEN",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 200
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-EARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 202
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-UNEARNED",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 204
+        },
+        {
+            "level": 5,
+            "name": "WS-RECON-DIFF",
+            "picture": "S9(15)V99",
+            "value": "ZERO",
+            "start_line": 206
+        },
+        {
+            "level": 5,
+            "name": "WS-ABS-DIFF",
+            "picture": "9(15)V99",
+            "value": "ZERO",
+            "start_line": 208
+        },
+        {
+            "level": 5,
+            "name": "WS-TOLERANCE",
+            "picture": "9V99",
+            "value": "0",
+            "start_line": 210
+        },
+        {
+            "level": 1,
+            "name": "WS-EDIT",
+            "picture": null,
+            "value": null,
+            "start_line": 212
+        },
+        {
+            "level": 5,
+            "name": "WS-COUNT-EDIT",
+            "picture": "ZZZ,ZZZ,ZZ9",
+            "value": null,
+            "start_line": 214
+        },
+        {
+            "level": 5,
+            "name": "WS-AMT-EDIT",
+            "picture": "ZZZ,ZZZ,ZZZ,ZZZ,ZZ9",
+            "value": null,
+            "start_line": 216
+        },
+        {
+            "level": 5,
+            "name": "WS-SIGNED-AMT-EDIT",
+            "picture": "-ZZZ,ZZZ,ZZZ,ZZZ,ZZ9",
+            "value": null,
+            "start_line": 218
+        },
+        {
+            "level": 5,
+            "name": "WS-LINE",
+            "picture": "X(80)",
+            "value": null,
+            "start_line": 220
+        }
+    ],
+    "records": [
+        {
+            "record_name": "PI-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 66
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CUSTOMER-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 68
+                },
+                {
+                    "level": 5,
+                    "name": "PI-AGENT-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 70
+                },
+                {
+                    "level": 5,
+                    "name": "PI-PRODUCT-TYPE",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 72
+                },
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-STATUS",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 74
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EFFECTIVE-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 76
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EXPIRY-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 78
+                },
+                {
+                    "level": 5,
+                    "name": "PI-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 80
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CREATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 82
+                },
+                {
+                    "level": 5,
+                    "name": "PI-UPDATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 84
+                }
+            ],
+            "start_line": 64
+        },
+        {
+            "record_name": "PRI-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PRI-PREMIUM-ID",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 90
+                },
+                {
+                    "level": 5,
+                    "name": "PRI-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 92
+                },
+                {
+                    "level": 5,
+                    "name": "PRI-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 94
+                },
+                {
+                    "level": 5,
+                    "name": "PRI-EARNED-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 96
+                },
+                {
+                    "level": 5,
+                    "name": "PRI-UNEARNED-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 98
+                },
+                {
+                    "level": 5,
+                    "name": "PRI-CALCULATION-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 100
+                }
+            ],
+            "start_line": 88
+        },
+        {
+            "record_name": "KPI-REC",
+            "level": 1,
+            "fields": [],
+            "start_line": 104
+        },
+        {
+            "record_name": "ER-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "ER-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 110
+                },
+                {
+                    "level": 5,
+                    "name": "ER-CODE",
+                    "picture": "X(4)",
+                    "value": null,
+                    "start_line": 112
+                },
+                {
+                    "level": 5,
+                    "name": "ER-MESSAGE",
+                    "picture": "X(64)",
+                    "value": null,
+                    "start_line": 114
+                }
+            ],
+            "start_line": 108
+        },
+        {
+            "record_name": "WS-STATUS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-PI-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 120
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 122
+                },
+                {
+                    "level": 5,
+                    "name": "WS-KO-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 124
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ER-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 126
+                }
+            ],
+            "start_line": 118
+        },
+        {
+            "record_name": "WS-SWITCHES",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-PI-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 130
+                },
+                {
+                    "level": 88,
+                    "name": "PI-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 132
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 134
+                },
+                {
+                    "level": 88,
+                    "name": "PR-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 136
+                },
+                {
+                    "level": 5,
+                    "name": "WS-FATAL",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 138
+                },
+                {
+                    "level": 88,
+                    "name": "FATAL-ERROR",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 140
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PI-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 142
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 144
+                },
+                {
+                    "level": 5,
+                    "name": "WS-KO-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 146
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ER-OPEN",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 148
+                }
+            ],
+            "start_line": 128
+        },
+        {
+            "record_name": "WS-SEQUENCE",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-PREV-PI-POLICY",
+                    "picture": "X(12)",
+                    "value": "LOW-VALUES",
+                    "start_line": 152
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PREV-PR-POLICY",
+                    "picture": "X(12)",
+                    "value": "LOW-VALUES",
+                    "start_line": 154
+                }
+            ],
+            "start_line": 150
+        },
+        {
+            "record_name": "WS-COUNTS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-TOTAL-POLICIES",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 158
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ACTIVE",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 160
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PENDING",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 162
+                },
+                {
+                    "level": 5,
+                    "name": "WS-EXPIRED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 164
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CANCELLED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 166
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-COUNT",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 168
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-COUNT",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 170
+                },
+                {
+                    "level": 5,
+                    "name": "WS-UNKNOWN-STATUS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 172
+                },
+                {
+                    "level": 5,
+                    "name": "WS-UNKNOWN-PROD",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 174
+                },
+                {
+                    "level": 5,
+                    "name": "WS-MISSING-PREM",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 176
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ORPHAN-PREM",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 178
+                },
+                {
+                    "level": 5,
+                    "name": "WS-RECON-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 180
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DQ-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 182
+                },
+                {
+                    "level": 5,
+                    "name": "WS-IO-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 184
+                }
+            ],
+            "start_line": 156
+        },
+        {
+            "record_name": "WS-TOTALS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-WRITTEN",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 188
+                },
+                {
+                    "level": 5,
+                    "name": "WS-EARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 190
+                },
+                {
+                    "level": 5,
+                    "name": "WS-UNEARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 192
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-WRITTEN",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 194
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-EARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 196
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-UNEARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 198
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-WRITTEN",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 200
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-EARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 202
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-UNEARNED",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 204
+                },
+                {
+                    "level": 5,
+                    "name": "WS-RECON-DIFF",
+                    "picture": "S9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 206
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ABS-DIFF",
+                    "picture": "9(15)V99",
+                    "value": "ZERO",
+                    "start_line": 208
+                },
+                {
+                    "level": 5,
+                    "name": "WS-TOLERANCE",
+                    "picture": "9V99",
+                    "value": "0",
+                    "start_line": 210
+                }
+            ],
+            "start_line": 186
+        },
+        {
+            "record_name": "WS-EDIT",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-COUNT-EDIT",
+                    "picture": "ZZZ,ZZZ,ZZ9",
+                    "value": null,
+                    "start_line": 214
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AMT-EDIT",
+                    "picture": "ZZZ,ZZZ,ZZZ,ZZZ,ZZ9",
+                    "value": null,
+                    "start_line": 216
+                },
+                {
+                    "level": 5,
+                    "name": "WS-SIGNED-AMT-EDIT",
+                    "picture": "-ZZZ,ZZZ,ZZZ,ZZZ,ZZ9",
+                    "value": null,
+                    "start_line": 218
+                },
+                {
+                    "level": 5,
+                    "name": "WS-LINE",
+                    "picture": "X(80)",
+                    "value": null,
+                    "start_line": 220
+                }
+            ],
+            "start_line": 212
+        }
+    ],
+    "copybooks": [],
+    "operations": {
+        "perform": [
+            "PERFORM WRITE-ERROR"
+        ],
+        "read": [
+            "READ-POLICY",
+            "READ POLICY-IN AT END MOVE 'Y' TO WS-PI-EOF NOT AT END IF WS-PI-ST NOT = '00' DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY DISPLAY 'POLICY INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PI-POLICY-NO TO WS-PREV-PI-POLICY END-IF END-IF END-READ END-IF",
+            "READ-PREMIUM",
+            "READ PREMIUM-IN AT END MOVE 'Y' TO WS-PR-EOF NOT AT END IF WS-PR-ST NOT = '00' DISPLAY 'PREMIUM READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY DISPLAY 'PREMIUM INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PRI-POLICY-NO TO WS-PREV-PR-POLICY END-IF END-IF END-READ END-IF"
+        ],
+        "write": [
+            "WRITE-KPI-REPORT END-IF PERFORM CLOSE-FILES DISPLAY 'KPI TOTAL POLICIES : ' WS-TOTAL-POLICIES DISPLAY 'KPI RECON ERRORS : ' WS-RECON-ERRORS DISPLAY 'KPI DATA QUALITY : ' WS-DQ-ERRORS DISPLAY 'KPI I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE ELSE IF WS-DQ-ERRORS > ZERO MOVE 4 TO RETURN-CODE END-IF END-IF GOBACK",
+            "WRITE-ERROR",
+            "WRITE ER-REC IF WS-ER-ST NOT = '00' DISPLAY 'ERROR WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO ER-REC",
+            "WRITE-KPI-REPORT",
+            "WRITE-KPI-LINE",
+            "WRITE KPI-REC IF WS-KO-ST NOT = '00' DISPLAY 'KPI WRITE ERROR ' WS-KO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO KPI-REC"
+        ],
+        "move": [
+            "MOVE 'Y' TO WS-PI-EOF NOT AT END IF WS-PI-ST NOT = '00' DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY DISPLAY 'POLICY INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PI-POLICY-NO TO WS-PREV-PI-POLICY END-IF END-IF END-READ END-IF",
+            "MOVE 'Y' TO WS-PR-EOF NOT AT END IF WS-PR-ST NOT = '00' DISPLAY 'PREMIUM READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY DISPLAY 'PREMIUM INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PRI-POLICY-NO TO WS-PREV-PR-POLICY END-IF END-IF END-READ END-IF",
+            "MOVE PI-POLICY-NO TO ER-POLICY-NO MOVE 'K001' TO ER-CODE MOVE 'POLICY HAS NO MATCHING PREMIUM RECORD' TO ER-MESSAGE PERFORM WRITE-ERROR",
+            "MOVE PRI-POLICY-NO TO ER-POLICY-NO MOVE 'K002' TO ER-CODE MOVE 'PREMIUM HAS NO MATCHING POLICY RECORD' TO ER-MESSAGE PERFORM WRITE-ERROR",
+            "MOVE PI-POLICY-NO TO ER-POLICY-NO END-IF WRITE ER-REC IF WS-ER-ST NOT = '00' DISPLAY 'ERROR WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO ER-REC",
+            "MOVE SPACES TO KPI-REC"
+        ],
+        "open": [
+            "OPEN PIC X VALUE 'N'",
+            "OPEN-FILES"
+        ],
+        "close": [
+            "CLOSE-FILES"
+        ],
+        "display": [
+            "DISPLAY 'KPI TOTAL POLICIES : ' WS-TOTAL-POLICIES DISPLAY 'KPI RECON ERRORS : ' WS-RECON-ERRORS DISPLAY 'KPI DATA QUALITY : ' WS-DQ-ERRORS DISPLAY 'KPI I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE ELSE IF WS-DQ-ERRORS > ZERO MOVE 4 TO RETURN-CODE END-IF END-IF GOBACK",
+            "DISPLAY 'POLICY OPEN ERROR ' WS-PI-ST SET FATAL-ERROR TO TRUE END-IF OPEN INPUT PREMIUM-IN IF WS-PR-ST = '00' MOVE 'Y' TO WS-PR-OPEN ELSE DISPLAY 'PREMIUM OPEN ERROR ' WS-PR-ST SET FATAL-ERROR TO TRUE END-IF OPEN OUTPUT KPI-OUT IF WS-KO-ST = '00' MOVE 'Y' TO WS-KO-OPEN ELSE DISPLAY 'KPI OUTPUT OPEN ERROR ' WS-KO-ST SET FATAL-ERROR TO TRUE END-IF OPEN OUTPUT ERROR-OUT IF WS-ER-ST = '00' MOVE 'Y' TO WS-ER-OPEN ELSE DISPLAY 'ERROR OUTPUT OPEN ERROR ' WS-ER-ST SET FATAL-ERROR TO TRUE END-IF",
+            "DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY DISPLAY 'POLICY INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PI-POLICY-NO TO WS-PREV-PI-POLICY END-IF END-IF END-READ END-IF",
+            "DISPLAY 'PREMIUM READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY DISPLAY 'PREMIUM INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PRI-POLICY-NO TO WS-PREV-PR-POLICY END-IF END-IF END-READ END-IF",
+            "DISPLAY 'ERROR WRITE ERROR ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO ER-REC",
+            "DISPLAY 'KPI WRITE ERROR ' WS-KO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO KPI-REC"
+        ],
+        "if": [
+            "IF FATAL-ERROR",
+            "IF PERFORM",
+            "IF PI-EOF",
+            "IF PR-EOF",
+            "IF END-IF END-",
+            "IF NOT FATAL-ERROR",
+            "IF PERFORM CLOSE-FILES",
+            "IF WS-DQ-ERRORS > ZERO",
+            "IF END-IF GOBACK",
+            "IF WS-PI-ST = '00'",
+            "IF OPEN INPUT PREMIUM-IN IF WS-PR-ST = '00'",
+            "IF OPEN OUTPUT KPI-OUT IF WS-KO-ST = '00'",
+            "IF OPEN OUTPUT ERROR-OUT IF WS-ER-ST = '00'",
+            "IF NOT PI-EOF",
+            "IF WS-PI-ST NOT = '00'",
+            "IF WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY",
+            "IF NOT PR-EOF",
+            "IF WS-PR-ST NOT = '00'",
+            "IF WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY",
+            "IF WS-ABS-DIFF > WS-TOLERANCE",
+            "IF ER-POLICY-NO = SPACES",
+            "IF WRITE ER-REC IF WS-ER-ST NOT = '00'",
+            "IF MOVE SPACES TO ER-REC",
+            "IF WS-KO-ST NOT = '00'",
+            "IF MOVE SPACES TO KPI-REC",
+            "IF WS-PI-OPEN = 'Y' CLOSE POLICY-IN IF WS-PI-ST NOT = '00'",
+            "IF END-IF IF WS-PR-OPEN = 'Y' CLOSE PREMIUM-IN IF WS-PR-ST NOT = '00'",
+            "IF END-IF IF WS-KO-OPEN = 'Y' CLOSE KPI-OUT IF WS-KO-ST NOT = '00'",
+            "IF END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00'",
+            "IF END-IF"
+        ],
+        "goto": [],
+        "add": [
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY DISPLAY 'POLICY INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PI-POLICY-NO TO WS-PREV-PI-POLICY END-IF END-IF END-READ END-IF",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE IF WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY DISPLAY 'PREMIUM INPUT OUT OF ORDER' ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE ELSE MOVE PRI-POLICY-NO TO WS-PREV-PR-POLICY END-IF END-IF END-READ END-IF",
+            "ADD 1 TO WS-MISSING-PREM ADD 1 TO WS-DQ-ERRORS MOVE PI-POLICY-NO TO ER-POLICY-NO MOVE 'K001' TO ER-CODE MOVE 'POLICY HAS NO MATCHING PREMIUM RECORD' TO ER-MESSAGE PERFORM WRITE-ERROR",
+            "ADD 1 TO WS-ORPHAN-PREM ADD 1 TO WS-DQ-ERRORS MOVE PRI-POLICY-NO TO ER-POLICY-NO MOVE 'K002' TO ER-CODE MOVE 'PREMIUM HAS NO MATCHING POLICY RECORD' TO ER-MESSAGE PERFORM WRITE-ERROR",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO ER-REC",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF MOVE SPACES TO KPI-REC"
+        ]
+    },
+    "performs": [
+        "OPEN-FILES",
+        "CLOSE-FILES",
+        "READ-POLICY",
+        "READ-PREMIUM",
+        "UNTIL",
+        "HANDLE-ORPHAN-PREMIUM",
+        "HANDLE-MISSING-PREMIUM",
+        "PROCESS-MATCHED",
+        "IF",
+        "WRITE-KPI-REPORT",
+        "WRITE-ERROR",
+        "WRITE-KPI-LINE"
+    ],
+    "calls": [],
+    "sql_statements": [],
+    "cics_statements": [],
+    "database_tables": [],
+    "database_columns": [],
+    "file_operations": [
+        {
+            "operation": "READ",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "ERROR"
+        },
+        {
+            "operation": "READ",
+            "file": "END-IF"
+        },
+        {
+            "operation": "READ",
+            "file": "PREMIUM-IN"
+        },
+        {
+            "operation": "WRITE",
+            "file": "ER-REC"
+        },
+        {
+            "operation": "WRITE",
+            "file": "ERROR"
+        },
+        {
+            "operation": "WRITE",
+            "file": "KPI-REC"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "ERROR"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "PREMIUM-IN"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "KPI-OUT"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "ERROR-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "PIC"
+        },
+        {
+            "operation": "OPEN",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ELSE"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ERROR"
+        },
+        {
+            "operation": "OPEN",
+            "file": "PREMIUM-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "KPI-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ERROR-OUT"
+        },
+        {
+            "operation": "OPEN",
+            "file": "END-IF"
+        }
+    ],
+    "moves": [
+        {
+            "source": "12",
+            "target": "RETURN-CODE"
+        },
+        {
+            "source": "4",
+            "target": "RETURN-CODE"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PR-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-KO-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-ER-OPEN"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PI-EOF"
+        },
+        {
+            "source": "PI-POLICY-NO",
+            "target": "WS-PREV-PI-POLICY"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PR-EOF"
+        },
+        {
+            "source": "PRI-POLICY-NO",
+            "target": "WS-PREV-PR-POLICY"
+        },
+        {
+            "source": "PI-POLICY-NO",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "'K003'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'UNKNOWN POLICY STATUS'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'K004'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'UNKNOWN PRODUCT TYPE'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'K005'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'WRITTEN DOES NOT EQUAL EARNED PLUS UNEARNED'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'K001'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'POLICY HAS NO MATCHING PREMIUM RECORD'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "PRI-POLICY-NO",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "'K002'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'PREMIUM HAS NO MATCHING POLICY RECORD'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "SPACES",
+            "target": "ER-REC"
+        },
+        {
+            "source": "SPACES",
+            "target": "KPI-REC"
+        },
+        {
+            "source": "'TFG PERSONAL LINES - TASK 9 KPI SUMMARY'",
+            "target": "KPI-REC"
+        },
+        {
+            "source": "WS-TOTAL-POLICIES",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-ACTIVE",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-PENDING",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-EXPIRED",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-CANCELLED",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-WRITTEN",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-EARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-UNEARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-HO-COUNT",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-HO-WRITTEN",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-HO-EARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-HO-UNEARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-AU-COUNT",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-AU-WRITTEN",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-AU-EARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-AU-UNEARNED",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-RECON-DIFF",
+            "target": "WS-SIGNED-AMT-EDIT"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-PR-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-KO-OPEN"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-ER-OPEN"
+        }
+    ],
+    "conditions": [
+        "FATAL-ERROR",
+        "PERFORM",
+        "PI-EOF",
+        "PR-EOF",
+        "END-IF END-",
+        "NOT FATAL-ERROR",
+        "PERFORM CLOSE-FILES",
+        "WS-DQ-ERRORS > ZERO",
+        "END-IF GOBACK",
+        "WS-PI-ST = '00'",
+        "OPEN INPUT PREMIUM-IN IF WS-PR-ST = '00'",
+        "OPEN OUTPUT KPI-OUT IF WS-KO-ST = '00'",
+        "OPEN OUTPUT ERROR-OUT IF WS-ER-ST = '00'",
+        "NOT PI-EOF",
+        "WS-PI-ST NOT = '00'",
+        "WS-PREV-PI-POLICY NOT = LOW-VALUES AND PI-POLICY-NO < WS-PREV-PI-POLICY",
+        "NOT PR-EOF",
+        "WS-PR-ST NOT = '00'",
+        "WS-PREV-PR-POLICY NOT = LOW-VALUES AND PRI-POLICY-NO < WS-PREV-PR-POLICY",
+        "WS-ABS-DIFF > WS-TOLERANCE",
+        "ER-POLICY-NO = SPACES",
+        "WRITE ER-REC IF WS-ER-ST NOT = '00'",
+        "MOVE SPACES TO ER-REC",
+        "WS-KO-ST NOT = '00'",
+        "MOVE SPACES TO KPI-REC",
+        "WS-PI-OPEN = 'Y' CLOSE POLICY-IN IF WS-PI-ST NOT = '00'",
+        "END-IF IF WS-PR-OPEN = 'Y' CLOSE PREMIUM-IN IF WS-PR-ST NOT = '00'",
+        "END-IF IF WS-KO-OPEN = 'Y' CLOSE KPI-OUT IF WS-KO-ST NOT = '00'",
+        "END-IF IF WS-ER-OPEN = 'Y' CLOSE ERROR-OUT IF WS-ER-ST NOT = '00'",
+        "END-IF"
+    ],
+    "tree_sitter": {
+        "root_type": "start",
+        "has_error": false,
+        "node_count": 2114,
+        "error_count": 0,
+        "node_types": {
+            "start": 1,
+            "program_definition": 1,
+            "identification_division": 1,
+            ".": 115,
+            "program_name": 1,
+            "comment": 16,
+            "environment_division": 1,
+            "input_output_section": 1,
+            "select_statement": 4,
+            "WORD": 307,
+            "assign_clause": 4,
+            "qualified_word": 288,
+            "organization_clause": 4,
+            "SEQUENTIAL": 4,
+            "file_status_clause": 4,
+            "FILE": 4,
+            "data_division": 1,
+            "file_section": 1,
+            "file_description": 4,
+            "file_type": 4,
+            "FD": 4,
+            "file_description_entry": 4,
+            "file_description_clause": 4,
+            "record_clause": 4,
+            "integer": 34,
+            "record_description_list": 4,
+            "data_description": 75,
+            "level_number": 75,
+            "entry_name": 75,
+            "picture_clause": 63,
+            "picture_x": 25,
+            "picture_9": 35,
+            "working_storage_section": 1,
+            "value_clause": 42,
+            "value_item": 42,
+            "SPACE": 9,
+            "SPACES": 9,
+            "string": 88,
+            "LOW_VALUE": 4,
+            "LOW-VALUES": 4,
+            "ZERO": 52,
+            "number": 31,
+            "decimal": 1,
+            "picture_edit": 3,
+            "procedure_division": 1,
+            "paragraph_header": 11,
+            "perform_statement_call_proc": 39,
+            "perform_procedure": 39,
+            "label": 39,
+            "if_header": 24,
+            "expr": 54,
+            "move_statement": 53,
+            "goback_statement": 2,
+            "END_IF": 28,
+            "perform_statement_loop": 1,
+            "perform_option": 1,
+            "(": 4,
+            "AND": 3,
+            ")": 4,
+            "OR": 1,
+            "else_if_header": 4,
+            "else_header": 11,
+            "evaluate_header": 3,
+            "evaluate_subject": 3,
+            "TRUE": 1,
+            "when": 8,
+            "eq": 10,
+            "=": 13,
+            "lt": 3,
+            "<": 3,
+            "when_other": 3,
+            "END_EVALUATE": 3,
+            "END_PERFORM": 1,
+            "NOT": 3,
+            "display_statement": 18,
+            "gt": 2,
+            ">": 2,
+            "period": 11,
+            "open_statement": 4,
+            "open_arg": 4,
+            "INPUT": 2,
+            "set_statement": 14,
+            "set_to_true_false": 14,
+            "OUTPUT": 2,
+            "read_statement": 2,
+            "at_end": 2,
+            "not_at_end": 2,
+            "ne": 10,
+            "add_statement": 36,
+            "arithmetic_x": 39,
+            "END_READ": 2,
+            "compute_statement": 3,
+            "-": 2,
+            "+": 2,
+            "function_": 1,
+            "func_args": 1,
+            "write_statement": 2,
+            "string_statement": 17,
+            "string_item": 51,
+            "DELIMITED": 17,
+            "SIZE": 17,
+            "close_statement": 4,
+            "close_arg": 4
+        }
+    },
+    "relationships": [
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PI-REC"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-NO"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CUSTOMER-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-AGENT-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-PRODUCT-TYPE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-STATUS"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EFFECTIVE-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EXPIRY-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CREATE-DT"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-UPDATE-DT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PRI-REC"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-PREMIUM-ID"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-POLICY-NO"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-EARNED-PREMIUM"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-UNEARNED-PREMIUM"
+        },
+        {
+            "source": "PRI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PRI-CALCULATION-DATE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "KPI-REC"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "ER-REC"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-STATUS"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-ST"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-ST"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-KO-ST"
+        },
+        {
+            "source": "WS-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ER-ST"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-SWITCHES"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-FATAL"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "FATAL-ERROR"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-OPEN"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-OPEN"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-KO-OPEN"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ER-OPEN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-SEQUENCE"
+        },
+        {
+            "source": "WS-SEQUENCE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PREV-PI-POLICY"
+        },
+        {
+            "source": "WS-SEQUENCE",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PREV-PR-POLICY"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-COUNTS"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-TOTAL-POLICIES"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ACTIVE"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PENDING"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-EXPIRED"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CANCELLED"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-COUNT"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-COUNT"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-UNKNOWN-STATUS"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-UNKNOWN-PROD"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-MISSING-PREM"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ORPHAN-PREM"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-RECON-ERRORS"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DQ-ERRORS"
+        },
+        {
+            "source": "WS-COUNTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-IO-ERRORS"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-TOTALS"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-WRITTEN"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-EARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-UNEARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-WRITTEN"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-EARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-UNEARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-WRITTEN"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-EARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-UNEARNED"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-RECON-DIFF"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ABS-DIFF"
+        },
+        {
+            "source": "WS-TOTALS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-TOLERANCE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-EDIT"
+        },
+        {
+            "source": "WS-EDIT",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-COUNT-EDIT"
+        },
+        {
+            "source": "WS-EDIT",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AMT-EDIT"
+        },
+        {
+            "source": "WS-EDIT",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-SIGNED-AMT-EDIT"
+        },
+        {
+            "source": "WS-EDIT",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-LINE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "MAIN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GOBACK"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "OPEN-FILES"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-IF"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-POLICY"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "PROCESS-MATCHED"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "HANDLE-MISSING-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "HANDLE-ORPHAN-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-KPI-REPORT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-KPI-LINE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CLOSE-FILES"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "OPEN-FILES"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "CLOSE-FILES"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-POLICY"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "UNTIL"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "HANDLE-ORPHAN-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "HANDLE-MISSING-PREMIUM"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "PROCESS-MATCHED"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "IF"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-KPI-REPORT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-KPI-LINE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "READS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "READS",
+            "target": "ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "READS",
+            "target": "END-IF"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "READS",
+            "target": "PREMIUM-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "WRITES",
+            "target": "ER-REC"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "WRITES",
+            "target": "ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "WRITES",
+            "target": "KPI-REC"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CLOSES",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CLOSES",
+            "target": "ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CLOSES",
+            "target": "PREMIUM-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CLOSES",
+            "target": "KPI-OUT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "CLOSES",
+            "target": "ERROR-OUT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "PIC"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "ELSE"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "ERROR"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "PREMIUM-IN"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "KPI-OUT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "ERROR-OUT"
+        },
+        {
+            "source": "KPICALC.CBL",
+            "relationship": "OPENS",
+            "target": "END-IF"
+        }
+    ],
+    "parse_errors": []
+}

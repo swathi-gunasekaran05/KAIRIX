@@ -1,0 +1,2605 @@
+{
+    "file": "PREMCALC.CBL",
+    "program_id": "PREMCALC",
+    "parser": {
+        "name": "Tree-sitter",
+        "language": "COBOL",
+        "grammar": "tree-sitter-language-pack"
+    },
+    "root": "start",
+    "has_errors": true,
+    "divisions": [
+        "IDENTIFICATION",
+        "ENVIRONMENT",
+        "DATA",
+        "PROCEDURE"
+    ],
+    "sections": [
+        "INPUT-OUTPUT",
+        "FILE",
+        "WORKING-STORAGE"
+    ],
+    "paragraphs": [
+        {
+            "text": "MAIN.",
+            "start_line": 167
+        },
+        {
+            "text": "GOBACK.",
+            "start_line": 190
+        },
+        {
+            "text": "OPEN-FILES.",
+            "start_line": 192
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 218
+        },
+        {
+            "text": "READ-POLICY.",
+            "start_line": 220
+        },
+        {
+            "text": "END-READ.",
+            "start_line": 230
+        },
+        {
+            "text": "READ-PROPERTY.",
+            "start_line": 232
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 244
+        },
+        {
+            "text": "READ-VEHICLE.",
+            "start_line": 246
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 258
+        },
+        {
+            "text": "READ-COVERAGE.",
+            "start_line": 260
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 272
+        },
+        {
+            "text": "PROCESS-POLICY.",
+            "start_line": 274
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 324
+        },
+        {
+            "text": "GET-PROPERTY.",
+            "start_line": 326
+        },
+        {
+            "text": "END-PERFORM.",
+            "start_line": 338
+        },
+        {
+            "text": "GET-VEHICLE.",
+            "start_line": 340
+        },
+        {
+            "text": "END-PERFORM.",
+            "start_line": 352
+        },
+        {
+            "text": "GET-ALL-COVERAGES.",
+            "start_line": 354
+        },
+        {
+            "text": "END-PERFORM.",
+            "start_line": 370
+        },
+        {
+            "text": "CALC-HO.",
+            "start_line": 372
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 385
+        },
+        {
+            "text": "CALC-AU.",
+            "start_line": 387
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 400
+        },
+        {
+            "text": "WRITE-PREMIUM.",
+            "start_line": 402
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 418
+        },
+        {
+            "text": "WRITE-ERROR.",
+            "start_line": 420
+        },
+        {
+            "text": "END-IF.",
+            "start_line": 429
+        },
+        {
+            "text": "CLOSE-FILES.",
+            "start_line": 431
+        }
+    ],
+    "files": [
+        {
+            "name": "POLICY-IN",
+            "assign_to": "POLIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PI-ST"
+        },
+        {
+            "name": "PROPERTY-IN",
+            "assign_to": "PROPIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PR-ST"
+        },
+        {
+            "name": "VEHICLE-IN",
+            "assign_to": "VEHIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-VE-ST"
+        },
+        {
+            "name": "COVERAGE-IN",
+            "assign_to": "COVGIN",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-CO-ST"
+        },
+        {
+            "name": "PREMIUM-OUT",
+            "assign_to": "PREMOUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-PO-ST"
+        },
+        {
+            "name": "ERROR-OUT",
+            "assign_to": "ERROUT",
+            "organization": "SEQUENTIAL",
+            "status_variable": "WS-ER-ST"
+        }
+    ],
+    "variables": [
+        {
+            "level": 1,
+            "name": "PI-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 55
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 56
+        },
+        {
+            "level": 5,
+            "name": "PI-CUSTOMER-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 57
+        },
+        {
+            "level": 5,
+            "name": "PI-AGENT-ID",
+            "picture": "X(9)",
+            "value": null,
+            "start_line": 58
+        },
+        {
+            "level": 5,
+            "name": "PI-PRODUCT-TYPE",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 59
+        },
+        {
+            "level": 5,
+            "name": "PI-POLICY-STATUS",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 60
+        },
+        {
+            "level": 5,
+            "name": "PI-EFFECTIVE-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 61
+        },
+        {
+            "level": 5,
+            "name": "PI-EXPIRY-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 62
+        },
+        {
+            "level": 5,
+            "name": "PI-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 63
+        },
+        {
+            "level": 5,
+            "name": "PI-CREATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 64
+        },
+        {
+            "level": 5,
+            "name": "PI-UPDATE-DT",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 65
+        },
+        {
+            "level": 1,
+            "name": "PR-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 68
+        },
+        {
+            "level": 5,
+            "name": "PR-PROPERTY-ID",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 69
+        },
+        {
+            "level": 5,
+            "name": "PR-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 70
+        },
+        {
+            "level": 5,
+            "name": "PR-PROPERTY-TYPE",
+            "picture": "X(2)",
+            "value": null,
+            "start_line": 71
+        },
+        {
+            "level": 5,
+            "name": "PR-ADDRESS",
+            "picture": "X(100)",
+            "value": null,
+            "start_line": 72
+        },
+        {
+            "level": 5,
+            "name": "PR-CONSTRUCTION-TYPE",
+            "picture": "X(30)",
+            "value": null,
+            "start_line": 73
+        },
+        {
+            "level": 5,
+            "name": "PR-YEAR-BUILT",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 74
+        },
+        {
+            "level": 5,
+            "name": "PR-PROPERTY-VALUE",
+            "picture": "9(10)V99",
+            "value": null,
+            "start_line": 75
+        },
+        {
+            "level": 1,
+            "name": "VE-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 78
+        },
+        {
+            "level": 5,
+            "name": "VE-VEHICLE-ID",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 79
+        },
+        {
+            "level": 5,
+            "name": "VE-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 80
+        },
+        {
+            "level": 5,
+            "name": "VE-VIN",
+            "picture": "X(17)",
+            "value": null,
+            "start_line": 81
+        },
+        {
+            "level": 5,
+            "name": "VE-MAKE",
+            "picture": "X(30)",
+            "value": null,
+            "start_line": 82
+        },
+        {
+            "level": 5,
+            "name": "VE-MODEL",
+            "picture": "X(30)",
+            "value": null,
+            "start_line": 83
+        },
+        {
+            "level": 5,
+            "name": "VE-YEAR",
+            "picture": "9(4)",
+            "value": null,
+            "start_line": 84
+        },
+        {
+            "level": 5,
+            "name": "VE-VEHICLE-VALUE",
+            "picture": "9(10)V99",
+            "value": null,
+            "start_line": 85
+        },
+        {
+            "level": 1,
+            "name": "CO-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 88
+        },
+        {
+            "level": 5,
+            "name": "CO-COVERAGE-ID",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 89
+        },
+        {
+            "level": 5,
+            "name": "CO-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 90
+        },
+        {
+            "level": 5,
+            "name": "CO-COVERAGE-TYPE",
+            "picture": "X(4)",
+            "value": null,
+            "start_line": 91
+        },
+        {
+            "level": 5,
+            "name": "CO-COVERAGE-LIMIT",
+            "picture": "9(10)V99",
+            "value": null,
+            "start_line": 92
+        },
+        {
+            "level": 5,
+            "name": "CO-DEDUCTIBLE",
+            "picture": "9(8)V99",
+            "value": null,
+            "start_line": 93
+        },
+        {
+            "level": 5,
+            "name": "CO-EFFECTIVE-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 94
+        },
+        {
+            "level": 5,
+            "name": "CO-EXPIRY-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 95
+        },
+        {
+            "level": 1,
+            "name": "PO-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 98
+        },
+        {
+            "level": 5,
+            "name": "PO-PREMIUM-ID",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 99
+        },
+        {
+            "level": 5,
+            "name": "PO-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 100
+        },
+        {
+            "level": 5,
+            "name": "PO-WRITTEN-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 101
+        },
+        {
+            "level": 5,
+            "name": "PO-EARNED-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 102
+        },
+        {
+            "level": 5,
+            "name": "PO-UNEARNED-PREMIUM",
+            "picture": "9(9)V99",
+            "value": null,
+            "start_line": 103
+        },
+        {
+            "level": 5,
+            "name": "PO-CALCULATION-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 104
+        },
+        {
+            "level": 1,
+            "name": "ER-REC",
+            "picture": null,
+            "value": null,
+            "start_line": 107
+        },
+        {
+            "level": 5,
+            "name": "ER-POLICY-NO",
+            "picture": "X(12)",
+            "value": null,
+            "start_line": 108
+        },
+        {
+            "level": 5,
+            "name": "ER-CODE",
+            "picture": "X(4)",
+            "value": null,
+            "start_line": 109
+        },
+        {
+            "level": 5,
+            "name": "ER-MESSAGE",
+            "picture": "X(54)",
+            "value": null,
+            "start_line": 110
+        },
+        {
+            "level": 1,
+            "name": "WS-FILE-STATUS",
+            "picture": null,
+            "value": null,
+            "start_line": 113
+        },
+        {
+            "level": 5,
+            "name": "WS-PI-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 114
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 115
+        },
+        {
+            "level": 5,
+            "name": "WS-VE-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 116
+        },
+        {
+            "level": 5,
+            "name": "WS-CO-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 117
+        },
+        {
+            "level": 5,
+            "name": "WS-PO-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 118
+        },
+        {
+            "level": 5,
+            "name": "WS-ER-ST",
+            "picture": "XX",
+            "value": "SPACES",
+            "start_line": 119
+        },
+        {
+            "level": 1,
+            "name": "WS-SWITCHES",
+            "picture": null,
+            "value": null,
+            "start_line": 120
+        },
+        {
+            "level": 5,
+            "name": "WS-POL-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 122
+        },
+        {
+            "level": 88,
+            "name": "POL-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 123
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 124
+        },
+        {
+            "level": 88,
+            "name": "PR-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 125
+        },
+        {
+            "level": 5,
+            "name": "WS-VE-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 126
+        },
+        {
+            "level": 88,
+            "name": "VE-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 127
+        },
+        {
+            "level": 5,
+            "name": "WS-CO-EOF",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 128
+        },
+        {
+            "level": 88,
+            "name": "CO-EOF",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 129
+        },
+        {
+            "level": 5,
+            "name": "WS-PR-FOUND",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 130
+        },
+        {
+            "level": 5,
+            "name": "WS-VE-FOUND",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 131
+        },
+        {
+            "level": 5,
+            "name": "WS-CO-FOUND",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 132
+        },
+        {
+            "level": 5,
+            "name": "WS-FATAL",
+            "picture": "X",
+            "value": "'N'",
+            "start_line": 133
+        },
+        {
+            "level": 88,
+            "name": "FATAL-ERROR",
+            "picture": null,
+            "value": "'Y'",
+            "start_line": 134
+        },
+        {
+            "level": 1,
+            "name": "WS-RATING-CONSTANTS",
+            "picture": null,
+            "value": null,
+            "start_line": 137
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-BASE",
+            "picture": "9(5)V99",
+            "value": "100",
+            "start_line": 138
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-RISK-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 139
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-COV-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 140
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-DED-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 141
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-MIN",
+            "picture": "9(5)V99",
+            "value": "150",
+            "start_line": 142
+        },
+        {
+            "level": 5,
+            "name": "WS-HO-MAX-DISC",
+            "picture": "9(5)V99",
+            "value": "100",
+            "start_line": 143
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-BASE",
+            "picture": "9(5)V99",
+            "value": "75",
+            "start_line": 144
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-RISK-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 145
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-COV-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 146
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-DED-RATE",
+            "picture": "9V9(6)",
+            "value": "0",
+            "start_line": 147
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-MIN",
+            "picture": "9(5)V99",
+            "value": "125",
+            "start_line": 148
+        },
+        {
+            "level": 5,
+            "name": "WS-AU-MAX-DISC",
+            "picture": "9(5)V99",
+            "value": "75",
+            "start_line": 149
+        },
+        {
+            "level": 1,
+            "name": "WS-CALC",
+            "picture": null,
+            "value": null,
+            "start_line": 150
+        },
+        {
+            "level": 5,
+            "name": "WS-RISK-VALUE",
+            "picture": "9(12)V99",
+            "value": "ZERO",
+            "start_line": 152
+        },
+        {
+            "level": 5,
+            "name": "WS-COV-LIMIT-TOTAL",
+            "picture": "9(12)V99",
+            "value": "ZERO",
+            "start_line": 153
+        },
+        {
+            "level": 5,
+            "name": "WS-DEDUCT-TOTAL",
+            "picture": "9(12)V99",
+            "value": "ZERO",
+            "start_line": 154
+        },
+        {
+            "level": 5,
+            "name": "WS-DISCOUNT",
+            "picture": "9(9)V99",
+            "value": "ZERO",
+            "start_line": 155
+        },
+        {
+            "level": 5,
+            "name": "WS-PREMIUM",
+            "picture": "9(9)V99",
+            "value": "ZERO",
+            "start_line": 156
+        },
+        {
+            "level": 5,
+            "name": "WS-CURRENT-DATE",
+            "picture": "9(8)",
+            "value": null,
+            "start_line": 157
+        },
+        {
+            "level": 5,
+            "name": "WS-COVERAGE-COUNT",
+            "picture": "9(5)",
+            "value": "ZERO",
+            "start_line": 158
+        },
+        {
+            "level": 1,
+            "name": "WS-COUNTERS",
+            "picture": null,
+            "value": null,
+            "start_line": 159
+        },
+        {
+            "level": 5,
+            "name": "WS-READ",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 161
+        },
+        {
+            "level": 5,
+            "name": "WS-CALCULATED",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 162
+        },
+        {
+            "level": 5,
+            "name": "WS-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 163
+        },
+        {
+            "level": 5,
+            "name": "WS-IO-ERRORS",
+            "picture": "9(9)",
+            "value": "ZERO",
+            "start_line": 164
+        }
+    ],
+    "records": [
+        {
+            "record_name": "PI-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 56
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CUSTOMER-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 57
+                },
+                {
+                    "level": 5,
+                    "name": "PI-AGENT-ID",
+                    "picture": "X(9)",
+                    "value": null,
+                    "start_line": 58
+                },
+                {
+                    "level": 5,
+                    "name": "PI-PRODUCT-TYPE",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 59
+                },
+                {
+                    "level": 5,
+                    "name": "PI-POLICY-STATUS",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 60
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EFFECTIVE-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 61
+                },
+                {
+                    "level": 5,
+                    "name": "PI-EXPIRY-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 62
+                },
+                {
+                    "level": 5,
+                    "name": "PI-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 63
+                },
+                {
+                    "level": 5,
+                    "name": "PI-CREATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 64
+                },
+                {
+                    "level": 5,
+                    "name": "PI-UPDATE-DT",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 65
+                }
+            ],
+            "start_line": 55
+        },
+        {
+            "record_name": "PR-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PR-PROPERTY-ID",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 69
+                },
+                {
+                    "level": 5,
+                    "name": "PR-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 70
+                },
+                {
+                    "level": 5,
+                    "name": "PR-PROPERTY-TYPE",
+                    "picture": "X(2)",
+                    "value": null,
+                    "start_line": 71
+                },
+                {
+                    "level": 5,
+                    "name": "PR-ADDRESS",
+                    "picture": "X(100)",
+                    "value": null,
+                    "start_line": 72
+                },
+                {
+                    "level": 5,
+                    "name": "PR-CONSTRUCTION-TYPE",
+                    "picture": "X(30)",
+                    "value": null,
+                    "start_line": 73
+                },
+                {
+                    "level": 5,
+                    "name": "PR-YEAR-BUILT",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 74
+                },
+                {
+                    "level": 5,
+                    "name": "PR-PROPERTY-VALUE",
+                    "picture": "9(10)V99",
+                    "value": null,
+                    "start_line": 75
+                }
+            ],
+            "start_line": 68
+        },
+        {
+            "record_name": "VE-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "VE-VEHICLE-ID",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 79
+                },
+                {
+                    "level": 5,
+                    "name": "VE-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 80
+                },
+                {
+                    "level": 5,
+                    "name": "VE-VIN",
+                    "picture": "X(17)",
+                    "value": null,
+                    "start_line": 81
+                },
+                {
+                    "level": 5,
+                    "name": "VE-MAKE",
+                    "picture": "X(30)",
+                    "value": null,
+                    "start_line": 82
+                },
+                {
+                    "level": 5,
+                    "name": "VE-MODEL",
+                    "picture": "X(30)",
+                    "value": null,
+                    "start_line": 83
+                },
+                {
+                    "level": 5,
+                    "name": "VE-YEAR",
+                    "picture": "9(4)",
+                    "value": null,
+                    "start_line": 84
+                },
+                {
+                    "level": 5,
+                    "name": "VE-VEHICLE-VALUE",
+                    "picture": "9(10)V99",
+                    "value": null,
+                    "start_line": 85
+                }
+            ],
+            "start_line": 78
+        },
+        {
+            "record_name": "CO-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "CO-COVERAGE-ID",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 89
+                },
+                {
+                    "level": 5,
+                    "name": "CO-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 90
+                },
+                {
+                    "level": 5,
+                    "name": "CO-COVERAGE-TYPE",
+                    "picture": "X(4)",
+                    "value": null,
+                    "start_line": 91
+                },
+                {
+                    "level": 5,
+                    "name": "CO-COVERAGE-LIMIT",
+                    "picture": "9(10)V99",
+                    "value": null,
+                    "start_line": 92
+                },
+                {
+                    "level": 5,
+                    "name": "CO-DEDUCTIBLE",
+                    "picture": "9(8)V99",
+                    "value": null,
+                    "start_line": 93
+                },
+                {
+                    "level": 5,
+                    "name": "CO-EFFECTIVE-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 94
+                },
+                {
+                    "level": 5,
+                    "name": "CO-EXPIRY-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 95
+                }
+            ],
+            "start_line": 88
+        },
+        {
+            "record_name": "PO-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "PO-PREMIUM-ID",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 99
+                },
+                {
+                    "level": 5,
+                    "name": "PO-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 100
+                },
+                {
+                    "level": 5,
+                    "name": "PO-WRITTEN-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 101
+                },
+                {
+                    "level": 5,
+                    "name": "PO-EARNED-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 102
+                },
+                {
+                    "level": 5,
+                    "name": "PO-UNEARNED-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": null,
+                    "start_line": 103
+                },
+                {
+                    "level": 5,
+                    "name": "PO-CALCULATION-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 104
+                }
+            ],
+            "start_line": 98
+        },
+        {
+            "record_name": "ER-REC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "ER-POLICY-NO",
+                    "picture": "X(12)",
+                    "value": null,
+                    "start_line": 108
+                },
+                {
+                    "level": 5,
+                    "name": "ER-CODE",
+                    "picture": "X(4)",
+                    "value": null,
+                    "start_line": 109
+                },
+                {
+                    "level": 5,
+                    "name": "ER-MESSAGE",
+                    "picture": "X(54)",
+                    "value": null,
+                    "start_line": 110
+                }
+            ],
+            "start_line": 107
+        },
+        {
+            "record_name": "WS-FILE-STATUS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-PI-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 114
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 115
+                },
+                {
+                    "level": 5,
+                    "name": "WS-VE-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 116
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CO-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 117
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PO-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 118
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ER-ST",
+                    "picture": "XX",
+                    "value": "SPACES",
+                    "start_line": 119
+                }
+            ],
+            "start_line": 113
+        },
+        {
+            "record_name": "WS-SWITCHES",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-POL-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 122
+                },
+                {
+                    "level": 88,
+                    "name": "POL-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 123
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 124
+                },
+                {
+                    "level": 88,
+                    "name": "PR-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 125
+                },
+                {
+                    "level": 5,
+                    "name": "WS-VE-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 126
+                },
+                {
+                    "level": 88,
+                    "name": "VE-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 127
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CO-EOF",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 128
+                },
+                {
+                    "level": 88,
+                    "name": "CO-EOF",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 129
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PR-FOUND",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 130
+                },
+                {
+                    "level": 5,
+                    "name": "WS-VE-FOUND",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 131
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CO-FOUND",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 132
+                },
+                {
+                    "level": 5,
+                    "name": "WS-FATAL",
+                    "picture": "X",
+                    "value": "'N'",
+                    "start_line": 133
+                },
+                {
+                    "level": 88,
+                    "name": "FATAL-ERROR",
+                    "picture": null,
+                    "value": "'Y'",
+                    "start_line": 134
+                }
+            ],
+            "start_line": 120
+        },
+        {
+            "record_name": "WS-RATING-CONSTANTS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-HO-BASE",
+                    "picture": "9(5)V99",
+                    "value": "100",
+                    "start_line": 138
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-RISK-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 139
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-COV-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 140
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-DED-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 141
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-MIN",
+                    "picture": "9(5)V99",
+                    "value": "150",
+                    "start_line": 142
+                },
+                {
+                    "level": 5,
+                    "name": "WS-HO-MAX-DISC",
+                    "picture": "9(5)V99",
+                    "value": "100",
+                    "start_line": 143
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-BASE",
+                    "picture": "9(5)V99",
+                    "value": "75",
+                    "start_line": 144
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-RISK-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 145
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-COV-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 146
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-DED-RATE",
+                    "picture": "9V9(6)",
+                    "value": "0",
+                    "start_line": 147
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-MIN",
+                    "picture": "9(5)V99",
+                    "value": "125",
+                    "start_line": 148
+                },
+                {
+                    "level": 5,
+                    "name": "WS-AU-MAX-DISC",
+                    "picture": "9(5)V99",
+                    "value": "75",
+                    "start_line": 149
+                }
+            ],
+            "start_line": 137
+        },
+        {
+            "record_name": "WS-CALC",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-RISK-VALUE",
+                    "picture": "9(12)V99",
+                    "value": "ZERO",
+                    "start_line": 152
+                },
+                {
+                    "level": 5,
+                    "name": "WS-COV-LIMIT-TOTAL",
+                    "picture": "9(12)V99",
+                    "value": "ZERO",
+                    "start_line": 153
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DEDUCT-TOTAL",
+                    "picture": "9(12)V99",
+                    "value": "ZERO",
+                    "start_line": 154
+                },
+                {
+                    "level": 5,
+                    "name": "WS-DISCOUNT",
+                    "picture": "9(9)V99",
+                    "value": "ZERO",
+                    "start_line": 155
+                },
+                {
+                    "level": 5,
+                    "name": "WS-PREMIUM",
+                    "picture": "9(9)V99",
+                    "value": "ZERO",
+                    "start_line": 156
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CURRENT-DATE",
+                    "picture": "9(8)",
+                    "value": null,
+                    "start_line": 157
+                },
+                {
+                    "level": 5,
+                    "name": "WS-COVERAGE-COUNT",
+                    "picture": "9(5)",
+                    "value": "ZERO",
+                    "start_line": 158
+                }
+            ],
+            "start_line": 150
+        },
+        {
+            "record_name": "WS-COUNTERS",
+            "level": 1,
+            "fields": [
+                {
+                    "level": 5,
+                    "name": "WS-READ",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 161
+                },
+                {
+                    "level": 5,
+                    "name": "WS-CALCULATED",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 162
+                },
+                {
+                    "level": 5,
+                    "name": "WS-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 163
+                },
+                {
+                    "level": 5,
+                    "name": "WS-IO-ERRORS",
+                    "picture": "9(9)",
+                    "value": "ZERO",
+                    "start_line": 164
+                }
+            ],
+            "start_line": 159
+        }
+    ],
+    "copybooks": [],
+    "operations": {
+        "perform": [
+            "PERFORM UNTIL PR-EOF OR FATAL-ERROR IF PR-POLICY-NO < PI-POLICY-NO PERFORM READ-PROPERTY ELSE IF PR-POLICY-NO = PI-POLICY-NO MOVE PR-PROPERTY-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-PR-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "PERFORM UNTIL VE-EOF OR FATAL-ERROR IF VE-POLICY-NO < PI-POLICY-NO PERFORM READ-VEHICLE ELSE IF VE-POLICY-NO = PI-POLICY-NO MOVE VE-VEHICLE-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-VE-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "PERFORM UNTIL CO-EOF OR FATAL-ERROR IF CO-POLICY-NO < PI-POLICY-NO PERFORM READ-COVERAGE ELSE IF CO-POLICY-NO = PI-POLICY-NO MOVE 'Y' TO WS-CO-FOUND ADD CO-COVERAGE-LIMIT TO WS-COV-LIMIT-TOTAL ADD CO-DEDUCTIBLE TO WS-DEDUCT-TOTAL ADD 1 TO WS-COVERAGE-COUNT PERFORM READ-COVERAGE ELSE EXIT PERFORM END-IF END-IF END-PERFORM",
+            "PERFORM WRITE-ERROR END-IF"
+        ],
+        "read": [
+            "READ PIC 9(9) VALUE ZERO",
+            "READ-PROPERTY PERFORM READ-VEHICLE PERFORM READ-COVERAGE PERFORM UNTIL POL-EOF OR FATAL-ERROR PERFORM READ-POLICY IF NOT POL-EOF AND NOT FATAL-ERROR ADD 1 TO WS-READ PERFORM PROCESS-POLICY END-IF END-PERFORM PERFORM CLOSE-FILES DISPLAY 'PREMCALC READ : ' WS-READ DISPLAY 'PREMCALC CALCULATED : ' WS-CALCULATED DISPLAY 'PREMCALC ERRORS : ' WS-ERRORS DISPLAY 'PREMCALC I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE END-IF GOBACK",
+            "READ-POLICY",
+            "READ POLICY-IN AT END MOVE 'Y' TO WS-POL-EOF NOT AT END IF WS-PI-ST NOT = '00' DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ",
+            "READ-PROPERTY",
+            "READ PROPERTY-IN AT END MOVE 'Y' TO WS-PR-EOF NOT AT END IF WS-PR-ST NOT = '00' DISPLAY 'PROPERTY READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "READ-VEHICLE",
+            "READ VEHICLE-IN AT END MOVE 'Y' TO WS-VE-EOF NOT AT END IF WS-VE-ST NOT = '00' DISPLAY 'VEHICLE READ ERROR ' WS-VE-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "READ-COVERAGE",
+            "READ COVERAGE-IN AT END MOVE 'Y' TO WS-CO-EOF NOT AT END IF WS-CO-ST NOT = '00' DISPLAY 'COVERAGE READ ERROR ' WS-CO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "READ-PROPERTY ELSE IF PR-POLICY-NO = PI-POLICY-NO MOVE PR-PROPERTY-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-PR-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "READ-VEHICLE ELSE IF VE-POLICY-NO = PI-POLICY-NO MOVE VE-VEHICLE-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-VE-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "READ-COVERAGE ELSE IF CO-POLICY-NO = PI-POLICY-NO MOVE 'Y' TO WS-CO-FOUND ADD CO-COVERAGE-LIMIT TO WS-COV-LIMIT-TOTAL ADD CO-DEDUCTIBLE TO WS-DEDUCT-TOTAL ADD 1 TO WS-COVERAGE-COUNT PERFORM READ-COVERAGE ELSE EXIT PERFORM END-IF END-IF END-PERFORM"
+        ],
+        "write": [
+            "WRITE-PREMIUM",
+            "WRITE PO-REC IF WS-PO-ST = '00' ADD 1 TO WS-CALCULATED ELSE ADD 1 TO WS-IO-ERRORS MOVE 'P901' TO ER-CODE MOVE 'PREMIUM OUTPUT WRITE FAILED' TO ER-MESSAGE PERFORM WRITE-ERROR END-IF",
+            "WRITE-ERROR",
+            "WRITE ER-REC IF WS-ER-ST = '00' ADD 1 TO WS-ERRORS ELSE DISPLAY 'ERROR OUTPUT WRITE FAILED ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ],
+        "move": [
+            "MOVE 'Y' TO WS-POL-EOF NOT AT END IF WS-PI-ST NOT = '00' DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ",
+            "MOVE 'Y' TO WS-PR-EOF NOT AT END IF WS-PR-ST NOT = '00' DISPLAY 'PROPERTY READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "MOVE 'Y' TO WS-VE-EOF NOT AT END IF WS-VE-ST NOT = '00' DISPLAY 'VEHICLE READ ERROR ' WS-VE-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "MOVE 'Y' TO WS-CO-EOF NOT AT END IF WS-CO-ST NOT = '00' DISPLAY 'COVERAGE READ ERROR ' WS-CO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "MOVE 'N' TO WS-PR-FOUND PERFORM UNTIL PR-EOF OR FATAL-ERROR IF PR-POLICY-NO < PI-POLICY-NO PERFORM READ-PROPERTY ELSE IF PR-POLICY-NO = PI-POLICY-NO MOVE PR-PROPERTY-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-PR-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "MOVE 'N' TO WS-VE-FOUND PERFORM UNTIL VE-EOF OR FATAL-ERROR IF VE-POLICY-NO < PI-POLICY-NO PERFORM READ-VEHICLE ELSE IF VE-POLICY-NO = PI-POLICY-NO MOVE VE-VEHICLE-VALUE TO WS-RISK-VALUE MOVE 'Y' TO WS-VE-FOUND END-IF EXIT PERFORM END-IF END-PERFORM",
+            "MOVE 'N' TO WS-CO-FOUND PERFORM UNTIL CO-EOF OR FATAL-ERROR IF CO-POLICY-NO < PI-POLICY-NO PERFORM READ-COVERAGE ELSE IF CO-POLICY-NO = PI-POLICY-NO MOVE 'Y' TO WS-CO-FOUND ADD CO-COVERAGE-LIMIT TO WS-COV-LIMIT-TOTAL ADD CO-DEDUCTIBLE TO WS-DEDUCT-TOTAL ADD 1 TO WS-COVERAGE-COUNT PERFORM READ-COVERAGE ELSE EXIT PERFORM END-IF END-IF END-PERFORM",
+            "MOVE WS-HO-MAX-DISC TO WS-DISCOUNT END-IF COMPUTE WS-PREMIUM ROUNDED = WS-HO-BASE + (WS-RISK-VALUE * WS-HO-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-HO-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-HO-MIN MOVE WS-HO-MIN TO WS-PREMIUM END-IF",
+            "MOVE WS-AU-MAX-DISC TO WS-DISCOUNT END-IF COMPUTE WS-PREMIUM ROUNDED = WS-AU-BASE + (WS-RISK-VALUE * WS-AU-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-AU-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-AU-MIN MOVE WS-AU-MIN TO WS-PREMIUM END-IF",
+            "MOVE PI-POLICY-NO(1:6) TO PO-PREMIUM-ID(1:6) MOVE WS-CURRENT-DATE(3:6) TO PO-PREMIUM-ID(7:6) MOVE PI-POLICY-NO TO PO-POLICY-NO MOVE WS-PREMIUM TO PO-WRITTEN-PREMIUM MOVE ZERO TO PO-EARNED-PREMIUM MOVE WS-PREMIUM TO PO-UNEARNED-PREMIUM MOVE WS-CURRENT-DATE TO PO-CALCULATION-DATE WRITE PO-REC IF WS-PO-ST = '00' ADD 1 TO WS-CALCULATED ELSE ADD 1 TO WS-IO-ERRORS MOVE 'P901' TO ER-CODE MOVE 'PREMIUM OUTPUT WRITE FAILED' TO ER-MESSAGE PERFORM WRITE-ERROR END-IF",
+            "MOVE PI-POLICY-NO TO ER-POLICY-NO WRITE ER-REC IF WS-ER-ST = '00' ADD 1 TO WS-ERRORS ELSE DISPLAY 'ERROR OUTPUT WRITE FAILED ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ],
+        "open": [
+            "OPEN-FILES IF FATAL-ERROR GOBACK END-IF PERFORM READ-PROPERTY PERFORM READ-VEHICLE PERFORM READ-COVERAGE PERFORM UNTIL POL-EOF OR FATAL-ERROR PERFORM READ-POLICY IF NOT POL-EOF AND NOT FATAL-ERROR ADD 1 TO WS-READ PERFORM PROCESS-POLICY END-IF END-PERFORM PERFORM CLOSE-FILES DISPLAY 'PREMCALC READ : ' WS-READ DISPLAY 'PREMCALC CALCULATED : ' WS-CALCULATED DISPLAY 'PREMCALC ERRORS : ' WS-ERRORS DISPLAY 'PREMCALC I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE END-IF GOBACK",
+            "OPEN-FILES"
+        ],
+        "close": [
+            "CLOSE-FILES DISPLAY 'PREMCALC READ : ' WS-READ DISPLAY 'PREMCALC CALCULATED : ' WS-CALCULATED DISPLAY 'PREMCALC ERRORS : ' WS-ERRORS DISPLAY 'PREMCALC I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE END-IF GOBACK",
+            "CLOSE-FILES",
+            "CLOSE POLICY-IN PROPERTY-IN VEHICLE-IN COVERAGE-IN PREMIUM-OUT ERROR-OUT"
+        ],
+        "display": [
+            "DISPLAY 'PREMCALC READ : ' WS-READ DISPLAY 'PREMCALC CALCULATED : ' WS-CALCULATED DISPLAY 'PREMCALC ERRORS : ' WS-ERRORS DISPLAY 'PREMCALC I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE END-IF GOBACK",
+            "DISPLAY 'POLICY READ ERROR ' WS-PI-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ",
+            "DISPLAY 'PROPERTY READ ERROR ' WS-PR-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "DISPLAY 'VEHICLE READ ERROR ' WS-VE-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "DISPLAY 'COVERAGE READ ERROR ' WS-CO-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "DISPLAY 'ERROR OUTPUT WRITE FAILED ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ],
+        "if": [
+            "IF FATAL-ERROR GOBACK",
+            "IF PERFORM",
+            "IF NOT POL-EOF AND NOT FATAL-ERROR",
+            "IF END-",
+            "IF FATAL-ERROR",
+            "IF GOBACK",
+            "IF WS-PI-ST NOT = '00'",
+            "IF IF WS-PR-ST NOT = '00'",
+            "IF IF WS-VE-ST NOT = '00'",
+            "IF IF WS-CO-ST NOT = '00'",
+            "IF IF WS-PO-ST NOT = '00'",
+            "IF IF WS-ER-ST NOT = '00'",
+            "IF NOT PR-EOF",
+            "IF WS-PR-ST NOT = '00'",
+            "IF NOT VE-EOF",
+            "IF WS-VE-ST NOT = '00'",
+            "IF NOT CO-EOF",
+            "IF WS-CO-ST NOT = '00'",
+            "IF PI-PRODUCT-TYPE = 'HO'",
+            "IF WS-PR-FOUND = 'Y'",
+            "IF WS-CO-FOUND = 'Y'",
+            "IF ELSE",
+            "IF ELSE IF PI-PRODUCT-TYPE = 'AU'",
+            "IF WS-VE-FOUND = 'Y'",
+            "IF END-IF",
+            "IF PR-POLICY-NO < PI-POLICY-NO",
+            "IF PR-POLICY-NO = PI-POLICY-NO",
+            "IF EXIT",
+            "IF VE-POLICY-NO < PI-POLICY-NO",
+            "IF VE-POLICY-NO = PI-POLICY-NO",
+            "IF CO-POLICY-NO < PI-POLICY-NO",
+            "IF CO-POLICY-NO = PI-POLICY-NO",
+            "IF END-IF END-",
+            "IF WS-DISCOUNT > WS-HO-MAX-DISC",
+            "IF COMPUTE WS-PREMIUM ROUNDED = WS-HO-BASE + (WS-RISK-VALUE * WS-HO-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-HO-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-HO-MIN",
+            "IF WS-DISCOUNT > WS-AU-MAX-DISC",
+            "IF COMPUTE WS-PREMIUM ROUNDED = WS-AU-BASE + (WS-RISK-VALUE * WS-AU-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-AU-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-AU-MIN",
+            "IF WS-PO-ST = '00'",
+            "IF WS-ER-ST = '00'"
+        ],
+        "goto": [],
+        "add": [
+            "ADD 1 TO WS-READ PERFORM PROCESS-POLICY END-IF END-PERFORM PERFORM CLOSE-FILES DISPLAY 'PREMCALC READ : ' WS-READ DISPLAY 'PREMCALC CALCULATED : ' WS-CALCULATED DISPLAY 'PREMCALC ERRORS : ' WS-ERRORS DISPLAY 'PREMCALC I/O ERRORS : ' WS-IO-ERRORS IF FATAL-ERROR MOVE 12 TO RETURN-CODE END-IF GOBACK",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ",
+            "ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF END-READ END-IF",
+            "ADD CO-COVERAGE-LIMIT TO WS-COV-LIMIT-TOTAL ADD CO-DEDUCTIBLE TO WS-DEDUCT-TOTAL ADD 1 TO WS-COVERAGE-COUNT PERFORM READ-COVERAGE ELSE EXIT PERFORM END-IF END-IF END-PERFORM",
+            "ADD 1 TO WS-CALCULATED ELSE ADD 1 TO WS-IO-ERRORS MOVE 'P901' TO ER-CODE MOVE 'PREMIUM OUTPUT WRITE FAILED' TO ER-MESSAGE PERFORM WRITE-ERROR END-IF",
+            "ADD 1 TO WS-ERRORS ELSE DISPLAY 'ERROR OUTPUT WRITE FAILED ' WS-ER-ST ADD 1 TO WS-IO-ERRORS SET FATAL-ERROR TO TRUE END-IF"
+        ]
+    },
+    "performs": [
+        "OPEN-FILES",
+        "READ-PROPERTY",
+        "READ-VEHICLE",
+        "READ-COVERAGE",
+        "UNTIL",
+        "READ-POLICY",
+        "PROCESS-POLICY",
+        "PERFORM",
+        "GET-PROPERTY",
+        "GET-ALL-COVERAGES",
+        "CALC-HO",
+        "WRITE-PREMIUM",
+        "WRITE-ERROR",
+        "GET-VEHICLE",
+        "CALC-AU",
+        "END-IF"
+    ],
+    "calls": [],
+    "sql_statements": [],
+    "cics_statements": [],
+    "database_tables": [],
+    "database_columns": [],
+    "file_operations": [
+        {
+            "operation": "READ",
+            "file": "PIC"
+        },
+        {
+            "operation": "READ",
+            "file": "PERFORM"
+        },
+        {
+            "operation": "READ",
+            "file": "DISPLAY"
+        },
+        {
+            "operation": "READ",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "ERROR"
+        },
+        {
+            "operation": "READ",
+            "file": "PROPERTY-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "END-IF"
+        },
+        {
+            "operation": "READ",
+            "file": "VEHICLE-IN"
+        },
+        {
+            "operation": "READ",
+            "file": "COVERAGE-IN"
+        },
+        {
+            "operation": "WRITE",
+            "file": "PO-REC"
+        },
+        {
+            "operation": "WRITE",
+            "file": "FAILED"
+        },
+        {
+            "operation": "WRITE",
+            "file": "ER-REC"
+        },
+        {
+            "operation": "CLOSE",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "POLICY-IN"
+        },
+        {
+            "operation": "OPEN",
+            "file": "ERROR"
+        }
+    ],
+    "moves": [
+        {
+            "source": "FUNCTION CURRENT-DATE(1:8)",
+            "target": "WS-CURRENT-DATE"
+        },
+        {
+            "source": "12",
+            "target": "RETURN-CODE"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-POL-EOF"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PR-EOF"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-VE-EOF"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-CO-EOF"
+        },
+        {
+            "source": "ZERO",
+            "target": "WS-RISK-VALUE"
+        },
+        {
+            "source": "'P003'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'NO COVERAGE RECORDS FOR POLICY'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'P001'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'HOMEOWNERS PROPERTY RECORD NOT FOUND'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'P002'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'AUTO VEHICLE RECORD NOT FOUND'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'P004'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'PRODUCT TYPE MUST BE HO OR AU'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-PR-FOUND"
+        },
+        {
+            "source": "PR-PROPERTY-VALUE",
+            "target": "WS-RISK-VALUE"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-PR-FOUND"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-VE-FOUND"
+        },
+        {
+            "source": "VE-VEHICLE-VALUE",
+            "target": "WS-RISK-VALUE"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-VE-FOUND"
+        },
+        {
+            "source": "'N'",
+            "target": "WS-CO-FOUND"
+        },
+        {
+            "source": "'Y'",
+            "target": "WS-CO-FOUND"
+        },
+        {
+            "source": "WS-HO-MAX-DISC",
+            "target": "WS-DISCOUNT"
+        },
+        {
+            "source": "WS-HO-MIN",
+            "target": "WS-PREMIUM"
+        },
+        {
+            "source": "WS-AU-MAX-DISC",
+            "target": "WS-DISCOUNT"
+        },
+        {
+            "source": "WS-AU-MIN",
+            "target": "WS-PREMIUM"
+        },
+        {
+            "source": "PI-POLICY-NO(1:6)",
+            "target": "PO-PREMIUM-ID"
+        },
+        {
+            "source": "WS-CURRENT-DATE(3:6)",
+            "target": "PO-PREMIUM-ID"
+        },
+        {
+            "source": "PI-POLICY-NO",
+            "target": "PO-POLICY-NO"
+        },
+        {
+            "source": "WS-PREMIUM",
+            "target": "PO-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "ZERO",
+            "target": "PO-EARNED-PREMIUM"
+        },
+        {
+            "source": "WS-PREMIUM",
+            "target": "PO-UNEARNED-PREMIUM"
+        },
+        {
+            "source": "WS-CURRENT-DATE",
+            "target": "PO-CALCULATION-DATE"
+        },
+        {
+            "source": "'P901'",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "'PREMIUM OUTPUT WRITE FAILED'",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "PI-POLICY-NO",
+            "target": "ER-POLICY-NO"
+        }
+    ],
+    "conditions": [
+        "FATAL-ERROR GOBACK",
+        "PERFORM",
+        "NOT POL-EOF AND NOT FATAL-ERROR",
+        "END-",
+        "FATAL-ERROR",
+        "GOBACK",
+        "WS-PI-ST NOT = '00'",
+        "IF WS-PR-ST NOT = '00'",
+        "IF WS-VE-ST NOT = '00'",
+        "IF WS-CO-ST NOT = '00'",
+        "IF WS-PO-ST NOT = '00'",
+        "IF WS-ER-ST NOT = '00'",
+        "NOT PR-EOF",
+        "WS-PR-ST NOT = '00'",
+        "NOT VE-EOF",
+        "WS-VE-ST NOT = '00'",
+        "NOT CO-EOF",
+        "WS-CO-ST NOT = '00'",
+        "PI-PRODUCT-TYPE = 'HO'",
+        "WS-PR-FOUND = 'Y'",
+        "WS-CO-FOUND = 'Y'",
+        "ELSE",
+        "ELSE IF PI-PRODUCT-TYPE = 'AU'",
+        "WS-VE-FOUND = 'Y'",
+        "END-IF",
+        "PR-POLICY-NO < PI-POLICY-NO",
+        "PR-POLICY-NO = PI-POLICY-NO",
+        "EXIT",
+        "VE-POLICY-NO < PI-POLICY-NO",
+        "VE-POLICY-NO = PI-POLICY-NO",
+        "CO-POLICY-NO < PI-POLICY-NO",
+        "CO-POLICY-NO = PI-POLICY-NO",
+        "END-IF END-",
+        "WS-DISCOUNT > WS-HO-MAX-DISC",
+        "COMPUTE WS-PREMIUM ROUNDED = WS-HO-BASE + (WS-RISK-VALUE * WS-HO-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-HO-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-HO-MIN",
+        "WS-DISCOUNT > WS-AU-MAX-DISC",
+        "COMPUTE WS-PREMIUM ROUNDED = WS-AU-BASE + (WS-RISK-VALUE * WS-AU-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-AU-COV-RATE) - WS-DISCOUNT IF WS-PREMIUM < WS-AU-MIN",
+        "WS-PO-ST = '00'",
+        "WS-ER-ST = '00'"
+    ],
+    "tree_sitter": {
+        "root_type": "start",
+        "has_error": true,
+        "node_count": 403,
+        "error_count": 1,
+        "node_types": {
+            "start": 1,
+            "ERROR": 1,
+            "comment_entry": 375,
+            "comment": 26
+        }
+    },
+    "relationships": [
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PI-REC"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-NO"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CUSTOMER-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-AGENT-ID"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-PRODUCT-TYPE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-POLICY-STATUS"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EFFECTIVE-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-EXPIRY-DATE"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-CREATE-DT"
+        },
+        {
+            "source": "PI-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PI-UPDATE-DT"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PR-REC"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-PROPERTY-ID"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-POLICY-NO"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-PROPERTY-TYPE"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-ADDRESS"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-CONSTRUCTION-TYPE"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-YEAR-BUILT"
+        },
+        {
+            "source": "PR-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-PROPERTY-VALUE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "VE-REC"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-VEHICLE-ID"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-POLICY-NO"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-VIN"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-MAKE"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-MODEL"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-YEAR"
+        },
+        {
+            "source": "VE-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-VEHICLE-VALUE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "CO-REC"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-COVERAGE-ID"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-POLICY-NO"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-COVERAGE-TYPE"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-COVERAGE-LIMIT"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-DEDUCTIBLE"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-EFFECTIVE-DATE"
+        },
+        {
+            "source": "CO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-EXPIRY-DATE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "PO-REC"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-PREMIUM-ID"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-POLICY-NO"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-WRITTEN-PREMIUM"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-EARNED-PREMIUM"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-UNEARNED-PREMIUM"
+        },
+        {
+            "source": "PO-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PO-CALCULATION-DATE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "ER-REC"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-POLICY-NO"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-CODE"
+        },
+        {
+            "source": "ER-REC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "ER-MESSAGE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-FILE-STATUS"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PI-ST"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-ST"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-VE-ST"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CO-ST"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PO-ST"
+        },
+        {
+            "source": "WS-FILE-STATUS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ER-ST"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-SWITCHES"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-POL-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "POL-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "PR-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-VE-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "VE-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CO-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "CO-EOF"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PR-FOUND"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-VE-FOUND"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CO-FOUND"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-FATAL"
+        },
+        {
+            "source": "WS-SWITCHES",
+            "relationship": "CONTAINS_FIELD",
+            "target": "FATAL-ERROR"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-RATING-CONSTANTS"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-BASE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-RISK-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-COV-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-DED-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-MIN"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-HO-MAX-DISC"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-BASE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-RISK-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-COV-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-DED-RATE"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-MIN"
+        },
+        {
+            "source": "WS-RATING-CONSTANTS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-AU-MAX-DISC"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-CALC"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-RISK-VALUE"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-COV-LIMIT-TOTAL"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DEDUCT-TOTAL"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-DISCOUNT"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-PREMIUM"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CURRENT-DATE"
+        },
+        {
+            "source": "WS-CALC",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-COVERAGE-COUNT"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_RECORD",
+            "target": "WS-COUNTERS"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-READ"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-CALCULATED"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-ERRORS"
+        },
+        {
+            "source": "WS-COUNTERS",
+            "relationship": "CONTAINS_FIELD",
+            "target": "WS-IO-ERRORS"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "MAIN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GOBACK"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "OPEN-FILES"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-IF"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-POLICY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-READ"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-PROPERTY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-VEHICLE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "READ-COVERAGE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "PROCESS-POLICY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GET-PROPERTY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "END-PERFORM"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GET-VEHICLE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "GET-ALL-COVERAGES"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CALC-HO"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CALC-AU"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-PREMIUM"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CONTAINS_PARAGRAPH",
+            "target": "CLOSE-FILES"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "OPEN-FILES"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-PROPERTY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-VEHICLE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-COVERAGE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "UNTIL"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "READ-POLICY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "PROCESS-POLICY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "PERFORM"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "GET-PROPERTY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "GET-ALL-COVERAGES"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "CALC-HO"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-PREMIUM"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "WRITE-ERROR"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "GET-VEHICLE"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "CALC-AU"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "PERFORMS",
+            "target": "END-IF"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "PIC"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "PERFORM"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "DISPLAY"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "ERROR"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "PROPERTY-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "END-IF"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "VEHICLE-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "READS",
+            "target": "COVERAGE-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "WRITES",
+            "target": "PO-REC"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "WRITES",
+            "target": "FAILED"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "WRITES",
+            "target": "ER-REC"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "CLOSES",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "OPENS",
+            "target": "POLICY-IN"
+        },
+        {
+            "source": "PREMCALC.CBL",
+            "relationship": "OPENS",
+            "target": "ERROR"
+        }
+    ],
+    "parse_errors": [
+        {
+            "type": "TREE_SITTER_ERROR",
+            "count": 1
+        }
+    ]
+}
