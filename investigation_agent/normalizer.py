@@ -252,16 +252,41 @@ class EvidenceNormalizer:
         )
 
     def _extract_logic_snippet(self, raw_text: str, profile: dict, summary: dict) -> str:
-        # First check transformations from profile
+        # 1. Direct COBOL COMPUTE extraction
+        compute_match = re.search(r"COMPUTE\s+([^\.]+)\.", raw_text, re.IGNORECASE)
+        if compute_match:
+            return f"COMPUTE {compute_match.group(1).strip()}"
+
+        # 2. Direct SSIS calculation expressions (e.g. loss_ratio, commission, formulas)
+        ssis_expr_match = re.search(r'expression="([^"]+)"', raw_text, re.IGNORECASE)
+        if ssis_expr_match:
+            return ssis_expr_match.group(1).strip()
+
+        ssis_math_match = re.search(r"([a-zA-Z0-9_]+\s*=\s*[^;\n]+(?:loss_ratio|commission|profit|earned|written)[^;\n]+)", raw_text, re.IGNORECASE)
+        if ssis_math_match:
+            return ssis_math_match.group(1).strip()
+
+        # 3. Direct SQL Aggregations & Calculations (SUM, CASE, COUNT)
+        sql_sum_match = re.search(r"(SUM\s*\([^)]+\)(?:\s+AS\s+[a-zA-Z0-9_]+)?)", raw_text, re.IGNORECASE)
+        if sql_sum_match:
+            return sql_sum_match.group(1).strip()
+
+        case_match = re.search(r"CASE\s+(?:WHEN[^\n]+)+END(?:\s+AS\s+[a-zA-Z0-9_]+)?", raw_text, re.IGNORECASE)
+        if case_match:
+            return case_match.group(0).strip()[:120]
+
+        # 4. Check transformations from profile
         transforms = profile.get("transformations", [])
         if transforms:
             first_trans = transforms[0]
-            if isinstance(first_trans, dict) and first_trans.get("description"):
+            if isinstance(first_trans, dict) and first_trans.get("expression"):
+                return first_trans.get("expression")
+            elif isinstance(first_trans, dict) and first_trans.get("description"):
                 return first_trans.get("description")
             elif isinstance(first_trans, str):
                 return first_trans
 
-        # Check rules
+        # 5. Check business rules from profile
         rules = profile.get("business_rules", [])
         if rules:
             first_rule = rules[0]
@@ -270,14 +295,10 @@ class EvidenceNormalizer:
             elif isinstance(first_rule, str):
                 return first_rule
 
-        # Extract COMPUTE or CASE statement from raw text
-        compute_match = re.search(r"COMPUTE\s+([^\.]+)\.", raw_text, re.IGNORECASE)
-        if compute_match:
-            return f"COMPUTE {compute_match.group(1).strip()}"
-
-        case_match = re.search(r"CASE\s+(?:WHEN[^\n]+)+END", raw_text, re.IGNORECASE)
-        if case_match:
-            return case_match.group(0).strip()[:100]
+        # 6. Check summary key transformations
+        key_trans = summary.get("key_transformations", [])
+        if key_trans:
+            return key_trans[0][:120]
 
         if summary.get("purpose"):
             return summary.get("purpose")[:120]
@@ -298,17 +319,63 @@ class EvidenceNormalizer:
             return items
 
         system = self._infer_system(file_name)
-        entity_name = record.get("entity_name") or record.get("p.name") or record.get("e.name") or "N/A"
-        logic = record.get("expression") or record.get("rule_desc") or record.get("logic") or record.get("t.expression") or "Graph relationship mapping"
-        rel_type = record.get("relationship_type") or record.get("type(r)") or "RELATES_TO"
+        entity_name = record.get("entity_name") or record.get("p.name") or record.get("e.name") or record.get("target.name") or "N/A"
+        raw_logic = record.get("expression") or record.get("rule_desc") or record.get("logic") or record.get("t.expression")
+        rel_type = record.get("relationship_type") or record.get("type(r)") or record.get("r") or "RELATES_TO"
+
+        # Lookup package to enrich generic "Graph relationship mapping" with real logic
+        pkg = self._pkg_cache.get(file_name) or self._pkg_cache.get(Path(file_name).stem) or {}
+        summary = pkg.get("summary", {})
+        profile = pkg.get("knowledge_profile", {})
+
+        logic_str = ""
+        if raw_logic and str(raw_logic).strip() and str(raw_logic) != "None":
+            logic_str = str(raw_logic)
+        else:
+            # Check for transformation or rule matching entity_name or fallback to package transformations
+            transforms = profile.get("transformations", [])
+            rules = profile.get("business_rules", [])
+
+            if "TRANSFORM:" in str(entity_name) and transforms:
+                for t in transforms:
+                    if isinstance(t, dict) and t.get("rule_id") and t.get("rule_id") in str(entity_name):
+                        logic_str = t.get("expression") or t.get("description")
+                        break
+                if not logic_str and transforms:
+                    t0 = transforms[0]
+                    logic_str = t0.get("expression") or t0.get("description") if isinstance(t0, dict) else str(t0)
+
+            elif "RULE:" in str(entity_name) and rules:
+                for r in rules:
+                    if isinstance(r, dict) and r.get("rule_id") and r.get("rule_id") in str(entity_name):
+                        logic_str = r.get("description")
+                        break
+                if not logic_str and rules:
+                    r0 = rules[0]
+                    logic_str = r0.get("description") if isinstance(r0, dict) else str(r0)
+
+            if not logic_str:
+                # Use key_transformations or purpose from summary
+                key_trans = summary.get("key_transformations", [])
+                if key_trans:
+                    logic_str = key_trans[0]
+                elif summary.get("purpose"):
+                    logic_str = summary.get("purpose")[:130]
+                else:
+                    logic_str = f"{rel_type} {entity_name}"
+
+        # Clean table name
+        display_table = entity_name
+        if "TRANSFORM:" in display_table or "RULE:" in display_table:
+            display_table = "N/A"
 
         item = EvidenceItem(
             system=system,
             file_name=file_name,
-            table=entity_name if entity_name != "N/A" else "N/A",
-            logic=str(logic),
+            table=display_table if display_table != "N/A" else "N/A",
+            logic=logic_str,
             data_flow_type=str(rel_type),
-            source_location=SourceLocation(start_line=1, end_line=50),
+            source_location=SourceLocation(start_line=1, end_line=pkg.get("source", {}).get("total_lines", 50)),
             confidence=0.90,
         )
         items.append(item)
