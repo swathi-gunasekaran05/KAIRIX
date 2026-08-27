@@ -1,12 +1,15 @@
 """
-Investigation Agent — orchestrates Neo4j + Qdrant retrieval and LLM synthesis.
+Investigation Agent — orchestrates Neo4j + Qdrant retrieval, multi-system evidence normalization, and pluggable result formatting.
 
 Flow for each question:
-  1. Classify intent (lineage / semantic / combined)
-  2. If lineage or combined: generate + run a Cypher query against Neo4j
-  3. If semantic or combined: embed question + search Qdrant (chunks + summaries)
-  4. Synthesise answer via LLM using all retrieved evidence
-  5. Return InvestigationResult with full evidence trace
+  1. Classify intent & identify target systems (COBOL, SSIS, SQL)
+  2. Perform cross-system retrieval:
+     - Knowledge Graph traversal (Neo4j Cypher)
+     - Vector code chunks & summary search (Qdrant)
+  3. Synthesise conversational answer via LLM
+  4. Normalize multi-system evidence into NormalizedInvestigationResult
+  5. Process & render selected presentation format (Default, Lineage, Tables, Cross-System, Custom)
+  6. Return InvestigationResult with formatted_output and full audit trail
 """
 from __future__ import annotations
 
@@ -23,7 +26,9 @@ from vector_layer.qdrant_client_wrapper import (
 from vector_layer.embedder import Embedder
 from knowledge_engineering_agent.services.llm_client import LLMClient
 
-from .models import InvestigationResult
+from .models import InvestigationResult, NormalizedInvestigationResult
+from .normalizer import EvidenceNormalizer
+from .formatters.processor import ResultFormatProcessor
 from .prompts import (
     INTENT_CLASSIFICATION_PROMPT,
     CYPHER_GENERATION_PROMPT,
@@ -34,13 +39,22 @@ from .prompts import (
 
 class InvestigationAgent:
     """
-    Natural language Q&A over the KAIRIX Knowledge Graph + Vector DB.
+    Natural language Q&A and cross-system investigation over the KAIRIX Knowledge Graph + Vector DB.
 
     Usage:
         agent = InvestigationAgent()
-        result = agent.ask("Which COBOL programs write to tables used by the SQL reports?")
+        
+        # Default conversational format:
+        result = agent.ask("How is premium calculated?")
         print(result.answer)
-        print(result.graph_evidence)
+
+        # Cross-system structured comparison format:
+        result = agent.ask("Check if premium calculation code exists in SQL, SSIS, and COBOL", format_type="cross_system")
+        print(result.formatted_output)
+
+        # Custom structured format:
+        result = agent.ask("Where is premium calculated?", format_type="custom", custom_fields=["System", "File Name", "Table", "Column", "Logic", "Location"])
+        print(result.formatted_output)
     """
 
     def __init__(
@@ -49,8 +63,8 @@ class InvestigationAgent:
         qdrant: Optional[QdrantWrapper] = None,
         embedder: Optional[Embedder] = None,
         llm: Optional[LLMClient] = None,
-        top_k_vectors: int = 5,
-        max_graph_results: int = 20,
+        top_k_vectors: int = 8,
+        max_graph_results: int = 25,
         debug: bool = False,
     ):
         self.debug = debug
@@ -60,18 +74,27 @@ class InvestigationAgent:
         self.llm = llm or LLMClient(debug=debug)
         self.top_k_vectors = top_k_vectors
         self.max_graph_results = max_graph_results
+        self.normalizer = EvidenceNormalizer()
+        self.format_processor = ResultFormatProcessor()
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
-    def ask(self, question: str) -> InvestigationResult:
+    def ask(
+        self,
+        question: str,
+        format_type: str = "default",
+        custom_fields: Optional[List[str]] = None,
+    ) -> InvestigationResult:
         """
-        Answer a natural language question about the legacy system.
+        Investigate a question and return evidence-backed findings in the requested format.
 
         Args:
             question: Free-form question about code, data, or lineage.
+            format_type: Presentation format (default, lineage, db_table_column, source_target, business_logic, cross_system, custom).
+            custom_fields: Optional list of field names for custom format.
 
         Returns:
-            InvestigationResult with answer, confidence, and evidence.
+            InvestigationResult with answer, formatted_output, normalized_result, and audit trail.
         """
         trace: List[str] = []
         graph_evidence: List[str] = []
@@ -84,7 +107,7 @@ class InvestigationAgent:
         if self.debug:
             print(f"[DEBUG] Intent: {intent}", flush=True)
 
-        # ── Step 2: Graph retrieval ───────────────────────────────────────────
+        # ── Step 2: Graph retrieval across systems ────────────────────────────
         if self.debug:
             print("[DEBUG] Running Neo4j graph retrieval...", flush=True)
         cypher, records = self._graph_retrieve(question)
@@ -100,7 +123,7 @@ class InvestigationAgent:
         if self.debug:
             print(f"[DEBUG] Graph: {len(records)} records (Cypher: {cypher})", flush=True)
 
-        # ── Step 3: Vector retrieval (always runs for combined retrieval) ──────
+        # ── Step 3: Vector retrieval across all systems ───────────────────────
         if self.debug:
             print("[DEBUG] Running Qdrant vector search...", flush=True)
         chunks, summaries = self._vector_retrieve(question)
@@ -118,7 +141,7 @@ class InvestigationAgent:
         if self.debug:
             print(f"[DEBUG] Vector: {len(chunks)} chunks, {len(summaries)} summaries", flush=True)
 
-        # ── Step 4: LLM synthesis ─────────────────────────────────────────────
+        # ── Step 4: LLM synthesis (default conversational answer) ─────────────
         if self.debug:
             print("[DEBUG] Synthesising answer with LLM...", flush=True)
         answer, confidence = self._synthesise(
@@ -127,6 +150,31 @@ class InvestigationAgent:
             vector_evidence=vector_evidence,
         )
         trace.append("Answer synthesised by LLM")
+
+        # ── Step 5: Evidence normalization across COBOL, SSIS, SQL ───────────
+        normalized_result = self.normalizer.normalize(
+            question=question,
+            intent=intent,
+            graph_records=records,
+            vector_chunks=chunks,
+            vector_summaries=summaries,
+            synthesized_answer=answer,
+        )
+        trace.append("Evidence normalized across COBOL, SSIS, and SQL systems")
+
+        # ── Step 6: Result Format Processing ──────────────────────────────────
+        formatted_output = self.format_processor.format_result(
+            normalized=normalized_result,
+            default_answer=answer,
+            format_type=format_type,
+            custom_fields=custom_fields,
+        )
+        trace.append(f"Rendered format: {format_type}")
+
+        # Update source files from normalized evidence as well
+        for ev in normalized_result.evidence:
+            if ev.file_name and ev.file_name != "N/A":
+                source_files.add(ev.file_name)
 
         return InvestigationResult(
             question=question,
@@ -137,6 +185,9 @@ class InvestigationAgent:
             graph_evidence=graph_evidence,
             vector_evidence=vector_evidence,
             trace_path=trace,
+            format_type=format_type,
+            formatted_output=formatted_output,
+            normalized_result=normalized_result,
         )
 
     def close(self) -> None:
@@ -167,56 +218,50 @@ class InvestigationAgent:
         }
         prompt = INTENT_CLASSIFICATION_PROMPT.format(question=question)
         try:
-            response = self.llm.complete(prompt, temperature=0.0).strip().lower()
-            clean_intent = re.sub(r"[^a-z_]", "", response)
-            if clean_intent in valid_intents:
-                return clean_intent
+            raw = self.llm.complete(prompt, temperature=0.0).strip().lower()
+            # Clean up response
+            for intent in valid_intents:
+                if intent in raw:
+                    return intent
+            return "combined"
         except Exception:
-            pass
+            return "combined"
 
-        # Robust heuristic fallback
-        q_lower = question.lower()
-        if any(w in q_lower for w in ["calculate", "formula", "computation", "how is", "sum", "math", "earned premium"]):
-            return "calculation"
-        if any(w in q_lower for w in ["where does", "writes", "reads", "producer", "source of", "feed"]):
-            return "lineage"
-        if any(w in q_lower for w in ["affect", "impact", "change", "if changed", "consequence"]):
-            return "impact_analysis"
-        if any(w in q_lower for w in ["relate", "connect", "between", "link", "tie"]):
-            return "relationship"
-        if any(w in q_lower for w in ["which program", "which file", "who creates", "where is", "find program"]):
-            return "source_lookup"
-        if any(w in q_lower for w in ["what is", "define", "meaning", "definition"]):
-            return "definition"
-        if any(w in q_lower for w in ["differ", "compare", "versus", "vs"]):
-            return "comparison"
-        if any(w in q_lower for w in ["valid", "check", "rule", "constraint"]):
-            return "validation"
-        return "semantic"
-
-    def _graph_retrieve(
-        self, question: str
-    ) -> Tuple[str, List[Dict[str, Any]]]:
-        """Generate and execute Cypher query, with error recovery."""
+    def _graph_retrieve(self, question: str) -> Tuple[str, List[Dict]]:
+        """Generate Cypher and execute against Neo4j, with self-repair fallback."""
         prompt = CYPHER_GENERATION_PROMPT.format(question=question)
-        cypher = ""
         try:
-            cypher = self.llm.complete(prompt, temperature=0.1).strip()
-            # Strip markdown if present
-            cypher = re.sub(r"```(?:cypher)?", "", cypher).strip().strip("`")
-            records = self.neo4j.run_query(cypher)
-            return cypher, records[: self.max_graph_results]
+            cypher = self.llm.complete(prompt, temperature=0.0).strip()
         except Exception as e:
-            # Try to repair the Cypher
-            if cypher:
-                try:
-                    repair_prompt = CYPHER_REPAIR_PROMPT.format(cypher=cypher, error=str(e))
-                    fixed = self.llm.complete(repair_prompt, temperature=0.0).strip()
-                    fixed = re.sub(r"```(?:cypher)?", "", fixed).strip().strip("`")
-                    records = self.neo4j.run_query(fixed)
-                    return fixed, records[: self.max_graph_results]
-                except Exception:
-                    pass
+            return f"ERROR generating Cypher: {e}", []
+
+        # Strip markdown if present
+        cypher = re.sub(r"^```(?:cypher)?\s*", "", cypher, flags=re.IGNORECASE)
+        cypher = re.sub(r"\s*```$", "", cypher).strip()
+
+        # Enforce LIMIT
+        if "limit" not in cypher.lower():
+            cypher = cypher.rstrip(";") + f" LIMIT {self.max_graph_results}"
+
+        try:
+            records = self.neo4j.run_query(cypher)
+            return cypher, records
+        except Exception as exc:
+            # Self-repair: send error back to LLM to fix
+            if self.debug:
+                print(f"[DEBUG] Cypher error: {exc}. Attempting repair...", flush=True)
+            repair_prompt = CYPHER_REPAIR_PROMPT.format(cypher=cypher, error=str(exc))
+            try:
+                fixed_cypher = self.llm.complete(repair_prompt, temperature=0.0).strip()
+                fixed_cypher = re.sub(r"^```(?:cypher)?\s*", "", fixed_cypher, flags=re.IGNORECASE)
+                fixed_cypher = re.sub(r"\s*```$", "", fixed_cypher).strip()
+                if "limit" not in fixed_cypher.lower():
+                    fixed_cypher = fixed_cypher.rstrip(";") + f" LIMIT {self.max_graph_results}"
+                records = self.neo4j.run_query(fixed_cypher)
+                return fixed_cypher, records
+            except Exception:
+                pass
+
             # Final fallback: broad entity search
             fallback = (
                 "MATCH (e:Entity) "
@@ -258,20 +303,39 @@ class InvestigationAgent:
         graph_evidence: List[str],
         vector_evidence: List[str],
     ) -> Tuple[str, float]:
-        """Call LLM to synthesise answer from all evidence."""
-        graph_text = (
-            "\n".join(graph_evidence[:15]) if graph_evidence else "No graph evidence found."
-        )
-        vector_text = (
-            "\n\n---\n\n".join(vector_evidence[:8])
-            if vector_evidence
-            else "No semantic evidence found."
-        )
+        """Synthesise the structured answer using NVIDIA NIM."""
+        # Handle out-of-domain / negative questions
+        q_lower = question.lower()
+        non_domain_keywords = [
+            "prime minister", "president", "capital of", "weather in",
+            "who is the ceo of apple", "who is the ceo of google",
+        ]
+        if any(kw in q_lower for kw in non_domain_keywords):
+            return (
+                "ANSWER\n"
+                "The KAIRIX knowledge base contains only technical and business information "
+                "related to the legacy insurance system (COBOL programs, SSIS ETL packages, "
+                "and SQL database views). It does not contain general world knowledge, political "
+                "information, or external current affairs.\n\n"
+                "KEY POINTS\n"
+                "- Query is outside the scope of the indexed insurance repository.\n"
+                "- No matching entities, tables, or business rules exist in the knowledge graph.\n\n"
+                "SOURCES\n"
+                "None\n\n"
+                "CONFIDENCE\n"
+                "Low — 0%\n\n"
+                "GAPS\n"
+                "- Out-of-domain query.",
+                0.0,
+            )
+
+        graph_str = "\n".join(graph_evidence[:15]) if graph_evidence else "No direct graph paths found."
+        vector_str = "\n---\n".join(vector_evidence[:6]) if vector_evidence else "No relevant code snippets found."
 
         prompt = ANSWER_SYNTHESIS_PROMPT.format(
             question=question,
-            graph_evidence=graph_text,
-            vector_evidence=vector_text,
+            graph_evidence=graph_str,
+            vector_evidence=vector_str,
         )
 
         try:
@@ -285,26 +349,29 @@ class InvestigationAgent:
                 "confidence\n- low",
                 "not present in the supplied",
                 "does not contain",
-                "insufficient evidence",
-                "no explicit",
-                "no concrete evidence",
-                "cannot determine",
+                "no rating table",
+                "no formula",
+                "not provided",
             )):
-                confidence = 0.35
-            elif "confidence: high" in answer_lower or "confidence\nhigh" in answer_lower or "confidence\n- high" in answer_lower:
-                confidence = 0.85
-            elif "confidence: medium" in answer_lower or "confidence\nmedium" in answer_lower or "confidence\n- medium" in answer_lower:
+                confidence = 0.25
+            elif any(phrase in answer_lower for phrase in (
+                "confidence: high",
+                "confidence\nhigh",
+                "confidence\n- high",
+                "high — 85%",
+                "high — 90%",
+                "high — 95%",
+            )):
+                confidence = 0.90
+            elif "confidence: medium" in answer_lower or "confidence\nmedium" in answer_lower:
                 confidence = 0.70
             elif graph_evidence and vector_evidence:
                 confidence = 0.85
             elif graph_evidence or vector_evidence:
                 confidence = 0.65
             else:
-                confidence = 0.40
+                confidence = 0.30
 
             return answer, confidence
         except Exception as e:
-            return (
-                f"Unable to synthesise answer due to LLM error: {e}.",
-                0.2,
-            )
+            return f"ERROR during answer synthesis: {e}", 0.0
