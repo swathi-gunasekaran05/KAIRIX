@@ -17,6 +17,16 @@ Usage:
 """
 from __future__ import annotations
 
+import os
+import warnings
+
+# Suppress Hugging Face hub notices and progress logs
+warnings.filterwarnings("ignore")
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
 import argparse
 import sys
 from pathlib import Path
