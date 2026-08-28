@@ -12,14 +12,16 @@ from typing import List, Optional
 import warnings
 warnings.filterwarnings("ignore")
 
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] = "1"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["TRANSFORMERS_VERBOSITY"] = "error"
-
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure Hugging Face authentication from environment
+_hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
+if _hf_token:
+    os.environ["HF_TOKEN"] = _hf_token
+    os.environ["HUGGING_FACE_HUB_TOKEN"] = _hf_token
+    os.environ.pop("HF_HUB_DISABLE_IMPLICIT_TOKEN", None)
 
 _VECTOR_DIM = 384
 
@@ -59,7 +61,14 @@ class Embedder:
             except ImportError:
                 pass
             from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer(self.model_name)
+
+            hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
+            try:
+                # Prefer local cached model to avoid unnecessary network requests
+                self._model = SentenceTransformer(self.model_name, local_files_only=True, token=hf_token)
+            except Exception:
+                self._model = SentenceTransformer(self.model_name, token=hf_token)
+
             if not self.silent:
                 print(f"[Embedder] Model ready. Vector dim: {_VECTOR_DIM}")
 

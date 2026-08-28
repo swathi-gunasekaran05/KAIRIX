@@ -1,43 +1,46 @@
 """
 Investigation Agent CLI — Layer 4 of KAIRIX Architecture.
 
-The Investigation Agent answers user/analyst questions about legacy code,
-business rules, data lineage, and system architecture by performing
-combined retrieval across the Neo4j Knowledge Graph and Qdrant Vector DB,
-with support for customizable result presentation formats.
+The Investigation Agent answers natural-language questions across all available
+legacy source systems (COBOL, SSIS, SQL) using Knowledge Graph and Vector Database
+retrieval combined with LLM reasoning.
 
 Usage:
-    # Ask in default conversational format:
-    python -m investigation_agent "How is earned premium calculated?"
+    # 1. Ask any question (automatically searches ALL available relevant sources):
+    python -m investigation_agent "How is premium calculated?"
 
-    # Ask in Cross-System Comparison format:
-    python -m investigation_agent "Check if premium calculation code exists in SQL, SSIS, and COBOL" --format cross_system
-
-    # Ask in Database / Table / Column format:
-    python -m investigation_agent "What tables and columns are used for policy period?" --format db_table_column
-
-    # Ask in Custom Structured format:
-    python -m investigation_agent "Where is premium calculated?" --format custom --custom-fields "System,File Name,Table,Column,Logic,Location"
-
-    # Interactive Q&A session:
+    # 2. Start an interactive investigation session:
     python -m investigation_agent --interactive
+
+    # 3. Output raw structured JSON response for UI integration:
+    python -m investigation_agent "How is premium calculated?" --json
+
+    # 4. Separately inspect structured source metadata for a specific file:
+    python -m investigation_agent --inspect PREMCALC.CBL
 """
 from __future__ import annotations
 
-import os
-import warnings
-
-# Suppress Hugging Face hub notices and progress logs
-warnings.filterwarnings("ignore")
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] = "1"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["TRANSFORMERS_VERBOSITY"] = "error"
-
 import argparse
+import os
 import sys
+import warnings
 from pathlib import Path
 from typing import List, Optional
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Configure Hugging Face authentication from environment
+_hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
+if _hf_token:
+    os.environ["HF_TOKEN"] = _hf_token
+    os.environ["HUGGING_FACE_HUB_TOKEN"] = _hf_token
+    os.environ.pop("HF_HUB_DISABLE_IMPLICIT_TOKEN", None)
+
+warnings.filterwarnings("ignore")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 
 from .agent import InvestigationAgent
 
@@ -48,51 +51,27 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
-FORMAT_CHOICES = [
-    "default",
-    "lineage",
-    "db_table_column",
-    "source_target",
-    "business_logic",
-    "cross_system",
-    "custom",
-]
-
-FORMAT_NAMES = {
-    "default": "Default Answer (Conversational 7-Section Blueprint)",
-    "lineage": "File Lineage",
-    "db_table_column": "Database / Table / Column",
-    "source_target": "Source-to-Target",
-    "business_logic": "Business Logic & Rules",
-    "cross_system": "Cross-System Comparison (SQL / SSIS / COBOL)",
-    "custom": "Custom Structured Format",
-}
-
-
 def main():
     parser = argparse.ArgumentParser(
         prog="python -m investigation_agent",
-        description="KAIRIX Layer 4: Investigation & Reverse Engineering Agent",
+        description="KAIRIX Layer 4: Multi-Source Investigation & Reverse Engineering Agent",
     )
     parser.add_argument(
         "question",
         nargs="?",
         type=str,
-        help="The question to ask about the legacy systems",
-    )
-    parser.add_argument(
-        "--format",
-        "-f",
-        type=str,
-        default="default",
-        choices=FORMAT_CHOICES,
-        help="Output presentation format (default: default)",
-    )
-    parser.add_argument(
-        "--custom-fields",
-        type=str,
         default=None,
-        help="Comma or pipe-separated custom field headers for custom format (e.g. 'System,File Name,Table,Column,Logic,Location')",
+        help="The natural-language question to investigate across all available source systems",
+    )
+    parser.add_argument(
+        "--inspect",
+        "--metadata",
+        "-m",
+        type=str,
+        nargs="?",
+        const="all",
+        default=None,
+        help="Separately inspect structured source metadata (e.g. --inspect PREMCALC.CBL)",
     )
     parser.add_argument(
         "--top-k",
@@ -104,7 +83,12 @@ def main():
         "--interactive",
         "-i",
         action="store_true",
-        help="Start an interactive multi-turn investigation session",
+        help="Start an interactive investigation session",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output raw normalized JSON response model for UI integration",
     )
     parser.add_argument(
         "--debug",
@@ -116,50 +100,127 @@ def main():
     args = parser.parse_args()
 
     if args.interactive:
-        _run_interactive_session(args.top_k, debug=args.debug, initial_format=args.format, custom_fields=args.custom_fields)
+        _run_interactive_session(args.top_k, debug=args.debug)
+    elif args.inspect is not None:
+        target_file = None if args.inspect == "all" else args.inspect.strip()
+        _inspect_metadata_only(
+            target_file=target_file,
+            top_k=args.top_k,
+            json_output=args.json,
+            debug=args.debug,
+        )
     elif args.question:
         _ask_single_question(
             args.question,
             top_k=args.top_k,
-            format_type=args.format,
-            custom_fields=args.custom_fields,
+            json_output=args.json,
             debug=args.debug,
         )
     else:
         parser.print_help()
 
 
+def _print_sources_breakdown(sources: list) -> None:
+    """Print human-readable source-aware breakdown for separate metadata view."""
+    if not sources:
+        return
+    print(f"\n{'═' * 60}")
+    print("STRUCTURED SOURCE METADATA VIEW")
+    print(f"{'═' * 60}")
+    for src in sources:
+        if src.system == "SQL":
+            print(f"\n[SQL] File: {src.file_name}")
+            for db in src.databases:
+                print(f"  Database: {db.name}")
+                for sc in db.schemas:
+                    print(f"    Schema: {sc.name}")
+                    for tbl in sc.tables:
+                        col_names = [c.name if hasattr(c, "name") else str(c) for c in tbl.columns]
+                        print(f"      Table: {tbl.name} (Columns: {len(col_names)})")
+                        if col_names:
+                            print(f"        -> {', '.join(col_names[:8])}")
+            if src.logic:
+                print(f"  Business Logic / CASE rules: {len(src.logic)} items extracted")
+        elif src.system == "SSIS":
+            print(f"\n[SSIS] Package: {src.package} (File: {src.file_name})")
+            for db in src.databases:
+                print(f"  Database: {db.name}")
+                for sc in db.schemas:
+                    print(f"    Schema: {sc.name}")
+                    for tbl in sc.tables:
+                        col_names = [c.name if hasattr(c, "name") else str(c) for c in tbl.columns]
+                        print(f"      Table: {tbl.name} (Role: {tbl.role})")
+                        if col_names:
+                            print(f"        -> {', '.join(col_names[:8])}")
+            if src.transformations:
+                print(f"  Transformations / SQL Tasks: {len(src.transformations)} items extracted")
+        elif src.system == "COBOL":
+            print(f"\n[COBOL] Program: {src.program} (File: {src.file_name})")
+            for fl in src.files:
+                print(f"  File / Record: {fl.name}")
+                if fl.fields:
+                    print(f"    Fields ({len(fl.fields)}): {', '.join(fl.fields[:8])}")
+                for rec in fl.records:
+                    rec_fields = [f.name if hasattr(f, "name") else str(f) for f in rec.fields]
+                    if rec_fields:
+                        print(f"    Record: {rec.name} -> {', '.join(rec_fields[:6])}")
+            if src.logic:
+                print(f"  Calculations & Statements: {len(src.logic)} extracted")
+    print(f"{'═' * 60}\n")
+
+
+def _inspect_metadata_only(
+    target_file: Optional[str] = None,
+    top_k: int = 8,
+    json_output: bool = False,
+    debug: bool = False,
+) -> None:
+    """Inspect and display metadata structure separately from normal Q&A."""
+    selected_files = [target_file] if target_file and target_file != "all" else None
+    with InvestigationAgent(top_k_vectors=top_k, debug=debug) as agent:
+        normalized = agent.get_metadata(selected_files=selected_files)
+
+        if json_output:
+            print(normalized.model_dump_json(indent=2))
+            return
+
+        target_label = target_file if target_file else "all indexed files"
+        print(f"\n✓ Extracted structured source metadata for: {target_label}")
+        _print_sources_breakdown(normalized.sources)
+
+
 def _ask_single_question(
     question: str,
-    top_k: int,
-    format_type: str = "default",
-    custom_fields: Optional[str] = None,
+    top_k: int = 8,
+    json_output: bool = False,
     debug: bool = False,
 ) -> None:
     if debug:
         print("\n━━━ Investigation Agent (Layer 4) [DEBUG MODE] ━━━")
         print(f"Question: {question}")
-        print(f"Format: {format_type}\n")
-
-    fields_list = [f.strip() for f in custom_fields.split(",")] if custom_fields else None
+        print("Scope: Automatic multi-source discovery (COBOL, SSIS, SQL)\n")
 
     with InvestigationAgent(top_k_vectors=top_k, debug=debug) as agent:
-        result = agent.ask(question, format_type=format_type, custom_fields=fields_list)
+        result = agent.ask(question)
 
-        output_text = result.formatted_output if format_type != "default" else result.answer
-        print("\n" + output_text.strip() + "\n")
+        if json_output:
+            print(result.model_dump_json(indent=2))
+            return
+
+        # Normal investigation answer ONLY:
+        # Ends after GAPS (or last section). No metadata dump appended!
+        print("\n" + result.answer.strip() + "\n")
 
         if debug:
             print(f"{'═' * 60}")
             print("DEBUG DIAGNOSTICS")
             print(f"{'═' * 60}")
             print(f"Intent: {result.intent}")
-            print(f"Format Used: {result.format_type}")
             print(f"Confidence Score: {result.confidence:.2f}")
             print(f"Graph Records Retrieved: {len(result.graph_evidence)}")
             print(f"Vector Context Chunks: {len(result.vector_evidence)}")
             if result.source_files:
-                print(f"Detected Source Files: {', '.join(result.source_files)}")
+                print(f"Source Files Investigated: {', '.join(result.source_files)}")
             print(f"Reasoning Trace: {' → '.join(result.trace_path)}")
             print(f"{'═' * 60}\n")
 
@@ -167,37 +228,24 @@ def _ask_single_question(
 def _run_interactive_session(
     top_k: int,
     debug: bool = False,
-    initial_format: str = "default",
-    custom_fields: Optional[str] = None,
 ) -> None:
-    current_format = initial_format
-    current_custom_fields = [f.strip() for f in custom_fields.split(",")] if custom_fields else [
-        "File Name", "System", "Database", "Table", "Column", "Logic", "Source Location"
-    ]
-
     print("\n╔══════════════════════════════════════════════════════════════╗")
     print("║     KAIRIX Investigation & Reverse Engineering Console       ║")
-    print("║     Layer 4 — Interactive Knowledge Retrieval Session        ║")
+    print("║     Layer 4 — Automatic Multi-Source Knowledge Retrieval     ║")
     print("╚══════════════════════════════════════════════════════════════╝")
-    print("\n📋 Available Result Formats:")
-    for idx, key in enumerate(FORMAT_CHOICES, 1):
-        print(f"  [{idx}] {key.ljust(16)} — {FORMAT_NAMES.get(key, key)}")
 
-    print("\n💡 Controls & Shortcuts:")
-    print("  • Type your question and press Enter")
-    print("  • ':f <name|1-7>' to change result format (e.g. ':f cross_system' or ':f 6')")
-    print("  • ':custom <col1,col2...>' to set custom table headers")
+    print("\n💡 Controls & Commands:")
+    print("  • Type your question and press Enter (automatically searches COBOL, SSIS, SQL)")
+    print("  • ':inspect <file>' to view separate structured metadata for a file")
     print("  • 'exit' or 'quit' to end session\n")
 
     if debug:
-        print(">> DEBUG MODE: Enabled (displaying internal retrieval diagnostics)")
+        print(">> DEBUG MODE: Enabled\n")
 
     with InvestigationAgent(top_k_vectors=top_k, debug=debug) as agent:
         while True:
             try:
-                fmt_tag = f"Format: {current_format}"
-                prompt_str = f"[{fmt_tag}] [Investigate] > "
-                user_input = input(prompt_str).strip()
+                user_input = input("[Investigate] > ").strip()
             except (KeyboardInterrupt, EOFError):
                 print("\nExiting session.")
                 break
@@ -205,57 +253,31 @@ def _run_interactive_session(
             if not user_input:
                 continue
 
-            # Command handling
             if user_input.lower() in ("exit", "quit", "q"):
                 print("Session ended.")
                 break
 
-            if user_input.startswith(":f ") or user_input.startswith(":format "):
-                target_fmt = user_input.split(" ", 1)[1].strip()
-                # Handle numeric selection
-                if target_fmt.isdigit() and 1 <= int(target_fmt) <= len(FORMAT_CHOICES):
-                    current_format = FORMAT_CHOICES[int(target_fmt) - 1]
-                    print(f"✓ Result format switched to: {FORMAT_NAMES.get(current_format, current_format)}\n")
-                    continue
-                elif target_fmt.lower() in FORMAT_CHOICES:
-                    current_format = target_fmt.lower()
-                    print(f"✓ Result format switched to: {FORMAT_NAMES.get(current_format, current_format)}\n")
-                    continue
-                else:
-                    print(f"⚠️ Unknown format '{target_fmt}'. Choose from: {', '.join(FORMAT_CHOICES)}\n")
-                    continue
-
-            if user_input.startswith(":custom "):
-                raw_cols = user_input.split(" ", 1)[1].strip()
-                if raw_cols:
-                    if "|" in raw_cols:
-                        current_custom_fields = [c.strip() for c in raw_cols.split("|") if c.strip()]
-                    else:
-                        current_custom_fields = [c.strip() for c in raw_cols.split(",") if c.strip()]
-                    current_format = "custom"
-                    print(f"✓ Custom fields set to: {current_custom_fields} (Format switched to 'custom')\n")
-                    continue
-
-            if user_input.startswith(":help"):
-                print("\n📋 Formats: " + ", ".join(FORMAT_CHOICES))
-                print("Commands: :f <name|1-7>, :custom <fields>, exit\n")
+            if user_input.startswith(":inspect") or user_input.startswith(":metadata") or user_input.startswith(":show"):
+                parts = user_input.split(maxsplit=1)
+                file_target = parts[1].strip() if len(parts) > 1 else None
+                selected = [file_target] if file_target else None
+                meta = agent.get_metadata(selected_files=selected)
+                _print_sources_breakdown(meta.sources)
                 continue
 
-            # Execute investigation
-            result = agent.ask(
-                user_input,
-                format_type=current_format,
-                custom_fields=current_custom_fields if current_format == "custom" else None,
-            )
+            if user_input.startswith(":help"):
+                print("\nType your question directly to investigate, ':inspect [file]' for metadata, or 'exit' to quit.\n")
+                continue
 
-            # Display output
-            output_text = result.formatted_output if current_format != "default" else result.answer
-            print("\n" + output_text.strip() + "\n")
+            # Execute normal investigation question
+            result = agent.ask(user_input)
+            # Print ONLY the clean conversational answer
+            print("\n" + result.answer.strip() + "\n")
 
             if debug:
                 print(f"{'─' * 60}")
-                print(f"[DEBUG] Intent: {result.intent} | Format: {result.format_type} | Confidence: {result.confidence:.2f}")
-                print(f"[DEBUG] Graph Records: {len(result.graph_evidence)} | Vector Contexts: {len(result.vector_evidence)}")
+                print(f"[DEBUG] Intent: {result.intent} | Confidence: {result.confidence:.2f}")
+                print(f"[DEBUG] Sources: {', '.join([s.file_name for s in result.sources])}")
                 print(f"[DEBUG] Trace: {' → '.join(result.trace_path)}")
                 print(f"{'─' * 60}\n")
 
