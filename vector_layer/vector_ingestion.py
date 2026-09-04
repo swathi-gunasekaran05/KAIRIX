@@ -1,7 +1,7 @@
 """
-Vector Ingestion — chunks source files and summaries into Qdrant.
+Vector Ingestion — chunks source files and summaries into Pinecone.
 
-Two collections:
+Two collections / namespaces:
   kairix_chunks     — sliding-window chunks of raw source code
   kairix_summaries  — one entry per source file summary (markdown)
 
@@ -10,7 +10,7 @@ Chunking strategy (kairix_chunks):
   - Each chunk carries: file_name, source_type, chunk_index, line_start, line_end, text
 
 Idempotent: uses deterministic IDs derived from file_name + chunk_index.
-Skips files whose chunks are already present in Qdrant (by count check).
+Skips files whose chunks are already present in Pinecone (by count check).
 """
 from __future__ import annotations
 

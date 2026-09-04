@@ -1,11 +1,11 @@
 """
-Investigation Agent — orchestrates Neo4j + Qdrant retrieval, source-aware metadata extraction, and LLM reasoning.
+Investigation Agent — orchestrates Neo4j + Pinecone retrieval, source-aware metadata extraction, and LLM reasoning.
 
 Flow for each question:
   1. Classify intent & validate target file scope (selected_files)
   2. Perform scoped retrieval across systems (SQL, SSIS, COBOL):
      - Knowledge Graph traversal (Neo4j Cypher filtered by selected_files)
-     - Vector code chunks & summary search (Qdrant filtered by selected_files)
+     - Vector code chunks & summary search (Pinecone filtered by selected_files)
   3. Synthesise conversational answer via LLM
   4. Extract and normalize source-aware metadata (SQL: DB->Schema->Table->Column, SSIS: Pkg->Conn/DB->Schema->Table->Column, COBOL: Program->File/Record->Field)
   5. Return InvestigationResult with natural-language answer, source-traceable metadata, and audit trail
@@ -533,7 +533,7 @@ class InvestigationAgent:
     def _vector_retrieve(
         self, question: str, scoped_files: Optional[List[str]] = None
     ) -> Tuple[List[Dict], List[Dict]]:
-        """Embed question and search Qdrant collections, filtering to scoped_files if provided."""
+        """Embed question and search Pinecone collections, filtering to scoped_files if provided."""
         query_vec = self.embedder.embed_one(question)
         top_k = self.top_k_vectors * (3 if scoped_files else 1)
 

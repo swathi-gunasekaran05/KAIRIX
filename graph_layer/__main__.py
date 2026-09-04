@@ -2,9 +2,9 @@
 Graph Layer CLI entry point.
 
 Usage:
-    python -m graph_layer                    # load Neo4j + Qdrant (full)
+    python -m graph_layer                    # load Neo4j + Pinecone (full)
     python -m graph_layer --neo4j-only       # only load graph
-    python -m graph_layer --qdrant-only      # only ingest vectors
+    python -m graph_layer --pinecone-only    # only ingest vectors
     python -m graph_layer --discover         # run relationship discovery
     python -m graph_layer --knowledge-dir path/to/dir
 """
@@ -38,15 +38,14 @@ def main() -> None:
     parser.add_argument(
         "--neo4j-only",
         action="store_true",
-        help="Only load data into Neo4j (skip Qdrant)",
+        help="Only load data into Neo4j (skip Pinecone)",
     )
     parser.add_argument(
         "--pinecone-only",
         "--vector-only",
-        "--qdrant-only",
         dest="vector_only",
         action="store_true",
-        help="Only ingest vectors into Pinecone/Qdrant (skip Neo4j)",
+        help="Only ingest vectors into Pinecone (skip Neo4j)",
     )
     parser.add_argument(
         "--discover",
