@@ -94,12 +94,14 @@ Semantic Evidence (relevant source code / summaries):
 Synthesize a precise, question-driven, non-redundant reverse-engineering response based ONLY on verified source evidence.
 
 CRITICAL RULES:
-1. ONLY SHOW THE RELEVANT SYSTEM (DO NOT DUMP UNRELATED SYSTEMS):
-   - Focus exclusively on the system(s) where the answer ACTUALLY originates:
-     • If a calculation takes place in COBOL, show ONLY COBOL. Do NOT include SSIS or SQL just because they query or stage the field.
-     • If an ETL data movement takes place in SSIS, show ONLY SSIS. Do NOT include COBOL or SQL unless they are direct sources/destinations of that ETL.
-     • If a database query or schema exists in SQL, show ONLY SQL.
-   - Merely passing, staging, or selecting a value is NOT calculating it. Never create dummy sections for systems that don't directly perform the asked logic.
+1. SINGLE UNIFIED STRUCTURE (NO SEPARATE SYSTEM SECTIONS WITH DUPLICATE SOURCES):
+   - Synthesize the response into a SINGLE cohesive structure.
+   - DO NOT create separate top-level headings for each system (e.g. DO NOT create `## COBOL`, `## SSIS`, `## SQL` each with their own separate `### Sources` or `### Formula` blocks).
+   - If the question involves multiple systems or a cross-system flow:
+     • Trace the end-to-end journey in one unified sequence under `### End-to-End Flow` (e.g. 1. Origin in COBOL -> 2. Movement & Validation in SSIS -> 3. Consumption & Reporting in SQL).
+     • Consolidate all verified files into a SINGLE `### Sources` list at the bottom.
+   - If the question involves only one system (e.g. calculation in COBOL or pipeline in SSIS):
+     • Focus strictly on that system without mentioning or creating dummy sections for unrelated systems.
 
 2. FORMULAS MUST BE HUMAN-READABLE MATHEMATICAL EQUATIONS (NO RAW CODE DUMPS):
    - Express all calculations as clean mathematical equations using standard business names:
@@ -108,13 +110,14 @@ CRITICAL RULES:
    - Include constants, percentages, minimum floors, and caps directly in the equation.
    - Translate internal code variables into their plain business meaning (e.g. `Property Value` instead of `WS-RISK-VALUE`, `Elapsed Days` instead of `WS-EARNED-DAYS`).
 
-3. CONCISE & TARGETED FORMAT:
-   - Provide only the sections needed to answer the question:
-     - **ANSWER**: Direct, 1-2 paragraph executive summary.
-     - **FORMULA** (only if asking for a calculation): The exact mathematical equation.
-     - **DATA FLOW** (only if asking for a pipeline/movement): Concise flow: Input → Processing → Output.
-     - **SOURCES**: The exact file name(s) where the logic lives.
-   - Do NOT repeat the same subsections (Key Points, Data Flow, Formula, Sources) for multiple systems if only one system is relevant.
+3. CONCISE & TARGETED FORMAT (SINGLE SECTION LAYOUT):
+   - Provide only the relevant subsections needed to answer the question:
+     - **ANSWER**: Direct, 1-2 paragraph executive summary explaining the answer or end-to-end flow.
+     - **### End-to-End Flow** (for cross-system questions or data pipelines): Unified sequential flow (Step 1 -> Step 2 -> Step 3).
+     - **### Key Logic & Formulas** (for calculations or business rules): Clean mathematical equations and business rules in a single list.
+     - **### Sources**: A SINGLE consolidated list of all verified source files across systems.
+     - **CONFIDENCE**: A single overall confidence assessment.
+   - NEVER duplicate `### Sources` or confidence across multiple headers.
 
 4. ZERO HALLUCINATION:
    - Base every statement strictly on the provided evidence. Never invent rules or parameters.
@@ -122,23 +125,24 @@ CRITICAL RULES:
 5. NO SOURCES FOR IRRELEVANT OR UNVERIFIED QUESTIONS:
    - If the question is off-topic, not relevant, or no verified evidence exists in the retrieved context:
      • State clearly in the ANSWER section that no relevant evidence exists in the indexed legacy codebase.
-     • DO NOT output any system subsections (## COBOL, ## SQL, ## SSIS), formulas, or Sources.
+     • DO NOT output any system subsections, flow, formulas, or Sources.
      • Omit the Sources section completely. Never list unrelated or dummy source files.
 
 REQUIRED OUTPUT STRUCTURE:
 
 ANSWER
-[Direct, concise answer answering the user's question directly]
+[Direct, cohesive answer explaining the core concept or end-to-end flow directly across all relevant systems]
 
-## <RELEVANT SYSTEM ONLY (e.g. COBOL)> (Omit if question is irrelevant or unverified)
-### Key Logic & Rules
-- [Key business rules or logic items]
+### End-to-End Flow (Include for cross-system queries or data pipelines; omit if answering a single calculation)
+1. **Origin (COBOL)**: [Brief description of logic/calculation at inception]
+2. **Movement & Validation (SSIS)**: [Brief description of ETL pipeline, validations, and staging]
+3. **Consumption & Reporting (SQL)**: [Brief description of queries, analytical views, or breakdowns]
 
-### Formula (Omit if question does not involve a calculation)
-[Clean, human-readable mathematical equation with all rates, floors, and caps]
+### Key Logic & Formulas (Include for calculation/business rule queries; omit if only asking about pipeline flow)
+- **[Rule/Calculation Name]**: [Human-readable mathematical equation or business rule with rates, floors, and caps]
 
 ### Sources (Omit if question is irrelevant or unverified)
-- [Exact source file(s) where this logic resides]
+- [Single consolidated list of all verified source file(s) across systems]
 
 CONFIDENCE
 [High / Medium / Low — percentage and short rationale]
