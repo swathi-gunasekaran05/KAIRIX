@@ -160,8 +160,8 @@ Provides an interactive console for natural language investigation:
 
 ### 1. Prerequisites
 - **Python**: 3.10 or higher
-- **Neo4j**: Local or Cloud instance (Neo4j Desktop, Docker, or AuraDB)
-- **Qdrant**: Local or Docker instance (`localhost:6333`)
+- **Neo4j AuraDB**: Managed Cloud Graph Database (`neo4j+s://...`)
+- **Pinecone**: Serverless Cloud Vector Database (`kairix` index)
 - **LLM Provider**: NVIDIA NIM or any OpenAI-compatible API endpoint
 
 ---

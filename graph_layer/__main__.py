@@ -41,9 +41,12 @@ def main() -> None:
         help="Only load data into Neo4j (skip Qdrant)",
     )
     parser.add_argument(
+        "--pinecone-only",
+        "--vector-only",
         "--qdrant-only",
+        dest="vector_only",
         action="store_true",
-        help="Only ingest into Qdrant (skip Neo4j)",
+        help="Only ingest vectors into Pinecone/Qdrant (skip Neo4j)",
     )
     parser.add_argument(
         "--discover",
@@ -52,14 +55,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    run_neo4j = not args.qdrant_only
-    run_qdrant = not args.neo4j_only
+    run_neo4j = not args.vector_only
+    run_vector = not args.neo4j_only
 
     if run_neo4j:
         _load_neo4j(args.knowledge_dir, args.discover)
 
-    if run_qdrant:
-        _load_qdrant(args.knowledge_dir, args.source_dir, args.summaries_dir)
+    if run_vector:
+        _load_pinecone(args.knowledge_dir, args.source_dir, args.summaries_dir)
 
 
 def _load_neo4j(knowledge_dir: str, discover: bool) -> None:
@@ -80,17 +83,17 @@ def _load_neo4j(knowledge_dir: str, discover: bool) -> None:
             print(f"[Discovery] {result}")
 
 
-def _load_qdrant(knowledge_dir: str, source_dir: str, summaries_dir: str) -> None:
+def _load_pinecone(knowledge_dir: str, source_dir: str, summaries_dir: str) -> None:
     from vector_layer.vector_ingestion import VectorIngestion
 
-    print("\n━━━ Qdrant Vector Ingestion ━━━")
+    print("\n━━━ Pinecone Vector Ingestion ━━━")
     ingestion = VectorIngestion(
         knowledge_dir=knowledge_dir,
         source_dir=source_dir,
         summaries_dir=summaries_dir,
     )
     stats = ingestion.ingest_all()
-    print(f"[Qdrant] Ingestion complete: {stats}")
+    print(f"[Pinecone] Ingestion complete: {stats}")
 
 
 if __name__ == "__main__":

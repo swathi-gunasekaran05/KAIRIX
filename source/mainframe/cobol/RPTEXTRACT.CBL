@@ -1,172 +1,160 @@
-       IDENTIFICATION DIVISION.
-       PROGRAM-ID. RPTEXTRACT.
+        *****************************************************************
+        * PROGRAM NAME : RPTEXTRACT
+        * PURPOSE      : Extract Monthly Policy and Premium Activity Report
+        * SYSTEM       : TFG Personal Lines Reporting
+        *
+        * INPUTS:
+        *   POLICY-IN  - Policy Extract file (POLICY.DAT)
+        *   PREMIUM-IN - Premium Extract file (PREMIUM.DAT)
+        *
+        * OUTPUTS:
+        *   REPORT-OUT - Formatted Monthly Report (MONTHLY_REPORT.TXT)
+        *****************************************************************
 
-       ENVIRONMENT DIVISION.
+        IDENTIFICATION DIVISION.
+        PROGRAM-ID. RPTEXTRACT.
 
-       INPUT-OUTPUT SECTION.
+        ENVIRONMENT DIVISION.
+        INPUT-OUTPUT SECTION.
+        FILE-CONTROL.
 
-       FILE-CONTROL.
+            SELECT POLICY-IN
+                ASSIGN TO 'POLICY.DAT'
+                ORGANIZATION IS LINE SEQUENTIAL.
 
-           SELECT POLICY-IN
-               ASSIGN TO 'POLICY.DAT'
-               ORGANIZATION IS LINE SEQUENTIAL.
+            SELECT PREMIUM-IN
+                ASSIGN TO 'PREMIUM.DAT'
+                ORGANIZATION IS LINE SEQUENTIAL.
 
-           SELECT PREMIUM-IN
-               ASSIGN TO 'PREMIUM.DAT'
-               ORGANIZATION IS LINE SEQUENTIAL.
+            SELECT REPORT-OUT
+                ASSIGN TO 'MONTHLY_REPORT.TXT'
+                ORGANIZATION IS LINE SEQUENTIAL.
 
-           SELECT REPORT-OUT
-               ASSIGN TO 'MONTHLY_REPORT.TXT'
-               ORGANIZATION IS LINE SEQUENTIAL.
+        DATA DIVISION.
+        FILE SECTION.
 
-       DATA DIVISION.
+        FD  POLICY-IN.
+        01  POLICY-REC.
+            05 POL-POLICY-NO          PIC X(12).
+            05 POL-CUSTOMER-ID        PIC X(10).
+            05 POL-AGENT-ID           PIC X(10).
+            05 POL-PRODUCT            PIC X(02).
+            05 POL-STATUS             PIC X(02).
 
-       FILE SECTION.
+        FD  PREMIUM-IN.
+        01  PREMIUM-REC.
+            05 PREM-POLICY-NO         PIC X(12).
+            05 WRITTEN-PREMIUM        PIC 9(9)V99.
+            05 EARNED-PREMIUM         PIC 9(9)V99.
 
-       FD  POLICY-IN.
+        FD  REPORT-OUT.
+        01  REPORT-OUT-REC            PIC X(120).
 
-       01  POLICY-REC.
-           05 POL-POLICY-NO          PIC X(12).
-           05 POL-CUSTOMER-ID        PIC X(10).
-           05 POL-AGENT-ID           PIC X(10).
-           05 POL-PRODUCT            PIC X(02).
-           05 POL-STATUS             PIC X(02).
+        WORKING-STORAGE SECTION.
 
-       FD PREMIUM-IN.
+        01  REPORT-RECORD.
+            05 RPT-REPORT-MONTH       PIC X(06).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-POLICY-NO          PIC X(12).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-CUSTOMER-ID        PIC X(10).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-AGENT-ID           PIC X(10).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-PRODUCT            PIC X(02).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-STATUS             PIC X(02).
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-WRITTEN-PREM       PIC 9(9).99.
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-EARNED-PREM        PIC 9(9).99.
+            05 FILLER                 PIC X(01) VALUE '|'.
+            05 RPT-UNEARNED-PREM      PIC 9(9).99.
 
-       01 PREMIUM-REC.
-           05 PREM-POLICY-NO         PIC X(12).
-           05 WRITTEN-PREMIUM        PIC 9(9)V99.
-           05 EARNED-PREMIUM         PIC 9(9)V99.
+        77  EOF-POLICY                PIC X VALUE 'N'.
+            88 END-OF-POLICY VALUE 'Y'.
 
-       FD REPORT-OUT.
+        77  WS-UNEARNED               PIC 9(9)V99.
+        77  WS-REPORT-MONTH           PIC X(06) VALUE '202607'.
 
-       01 REPORT-OUT-REC             PIC X(120).
+        77  WS-HEADER                 PIC X(120)
+            VALUE
+        'REPORT_MONTH|POLICY_NO|CUSTOMER_ID|AGENT_ID|PRODUCT|STATUS|WRITTEN_PREMIUM|EARNED_PREMIUM|UNEARNED_PREMIUM'.
 
-       WORKING-STORAGE SECTION.
+        PROCEDURE DIVISION.
 
-       COPY RPTEXTRACT.
+        MAIN-PARA.
+            OPEN INPUT POLICY-IN
+                 INPUT PREMIUM-IN
+                 OUTPUT REPORT-OUT
 
-       77 EOF-POLICY                 PIC X VALUE 'N'.
-          88 END-OF-POLICY VALUE 'Y'.
+            WRITE REPORT-OUT-REC FROM WS-HEADER
 
-       77 WS-UNEARNED                PIC 9(9)V99.
+            PERFORM UNTIL END-OF-POLICY
+                READ POLICY-IN
+                    AT END
+                       SET END-OF-POLICY TO TRUE
+                    NOT AT END
+                       READ PREMIUM-IN
+                       COMPUTE WS-UNEARNED =
+                               WRITTEN-PREMIUM
+                             - EARNED-PREMIUM
 
-       77 WS-REPORT-MONTH            PIC X(06)
-                                     VALUE '202607'.
+                       MOVE WS-REPORT-MONTH  TO RPT-REPORT-MONTH
+                       MOVE POL-POLICY-NO    TO RPT-POLICY-NO
+                       MOVE POL-CUSTOMER-ID  TO RPT-CUSTOMER-ID
+                       MOVE POL-AGENT-ID     TO RPT-AGENT-ID
+                       MOVE POL-PRODUCT      TO RPT-PRODUCT
+                       MOVE POL-STATUS       TO RPT-STATUS
+                       MOVE WRITTEN-PREMIUM  TO RPT-WRITTEN-PREM
+                       MOVE EARNED-PREMIUM   TO RPT-EARNED-PREM
+                       MOVE WS-UNEARNED      TO RPT-UNEARNED-PREM
 
-       77 WS-HEADER                  PIC X(120)
-          VALUE
-       'REPORT_MONTH|POLICY_NO|CUSTOMER_ID|AGENT_ID|PRODUCT|STATUS|WRITTEN_PREMIUM|EARNED_PREMIUM|UNEARNED_PREMIUM'.
+                       WRITE REPORT-OUT-REC FROM REPORT-RECORD
+                END-READ
+            END-PERFORM
 
-       PROCEDURE DIVISION.
+            PERFORM WRITE-KPI-SUMMARY
 
-       MAIN-PARA.
+            CLOSE POLICY-IN
+                  PREMIUM-IN
+                  REPORT-OUT
 
-           OPEN INPUT POLICY-IN
-                INPUT PREMIUM-IN
-                OUTPUT REPORT-OUT
+            STOP RUN.
 
-           WRITE REPORT-OUT-REC FROM WS-HEADER
+        WRITE-KPI-SUMMARY.
+            MOVE '=============================================================='
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-           PERFORM UNTIL END-OF-POLICY
+            MOVE 'MONTHLY KPI SUMMARY'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-               READ POLICY-IN
-                   AT END
-                      SET END-OF-POLICY TO TRUE
-                   NOT AT END
+            MOVE '=============================================================='
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      READ PREMIUM-IN
+            MOVE 'TOTAL POLICIES        : 14500'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      COMPUTE WS-UNEARNED =
-                              WRITTEN-PREMIUM
-                            - EARNED-PREMIUM
+            MOVE 'ACTIVE POLICIES       : 13100'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      MOVE WS-REPORT-MONTH
-                           TO RPT-REPORT-MONTH
+            MOVE 'PENDING POLICIES      : 300'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      MOVE POL-POLICY-NO
-                           TO RPT-POLICY-NO
+            MOVE 'EXPIRED POLICIES      : 800'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      MOVE POL-CUSTOMER-ID
-                           TO RPT-CUSTOMER-ID
+            MOVE 'CANCELLED POLICIES    : 300'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC
 
-                      MOVE POL-AGENT-ID
-                           TO RPT-AGENT-ID
-
-                      MOVE POL-PRODUCT
-                           TO RPT-PRODUCT
-
-                      MOVE POL-STATUS
-                           TO RPT-STATUS
-
-                      MOVE WRITTEN-PREMIUM
-                           TO RPT-WRITTEN-PREM
-
-                      MOVE EARNED-PREMIUM
-                           TO RPT-EARNED-PREM
-
-                      MOVE WS-UNEARNED
-                           TO RPT-UNEARNED-PREM
-
-                      WRITE REPORT-OUT-REC
-                          FROM REPORT-RECORD
-
-               END-READ
-
-           END-PERFORM
-
-           PERFORM WRITE-KPI-SUMMARY
-
-           CLOSE POLICY-IN
-                 PREMIUM-IN
-                 REPORT-OUT
-
-           STOP RUN.
-
-       WRITE-KPI-SUMMARY.
-
-           MOVE
-           '=============================================================='
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'MONTHLY KPI SUMMARY'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           '=============================================================='
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'TOTAL POLICIES        : 14500'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'ACTIVE POLICIES       : 13100'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'PENDING POLICIES      : 300'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'EXPIRED POLICIES      : 800'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'CANCELLED POLICIES    : 300'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC
-
-           MOVE
-           'WRITTEN = EARNED + UNEARNED : PASSED'
-           TO REPORT-OUT-REC
-           WRITE REPORT-OUT-REC.
+            MOVE 'WRITTEN = EARNED + UNEARNED : PASSED'
+            TO REPORT-OUT-REC
+            WRITE REPORT-OUT-REC.

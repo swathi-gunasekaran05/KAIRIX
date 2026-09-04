@@ -1,69 +1,104 @@
 # Source Code Summary: ClaimCenter_Monoline
 
-**Business Domain:** Claims – loss incurred calculation for underwriting and financial reporting.
+**Business Domain:** ClaimCenter / Loss Accounting & Claims Reporting
 
 ## Purpose
-Generate a claim‑level loss summary (incurred amount) filtered primarily by year‑to‑date, suitable for profit‑and‑loss reporting, by aggregating transaction amounts from ClaimCenter and enriching them with policy and underwriting information.
+Extracts monoline incurred losses, financial recovery details, claim representative assignments, and TFG transaction code mapping from ClaimCenter source views, aggregating to a summary of incurred losses by policy and line of business.
 
 ## High-Level Narrative
-The script declares two unused date parameters, then executes a SELECT that aggregates claim transaction data. A deep sub‑query pulls rows from many ClaimCenter view objects (transaction line items, transactions, sets, claims, policies, coverages, exposures, users, etc.) and joins lookup tables for LOB, policy type, transaction codes, cost types, recovery categories, underwriting companies, etc. Within the inner SELECT, numerous CASE expressions derive business fields such as PolSource, TFGTran, Company, CostType, DedStatAmount and a signed TransAmount based on transaction type (Reserve, Payment, Recovery) and the DoesNotErodeReserves flag. Row numbers are generated for reserve lines to distinguish first vs subsequent entries. Dates are normalized to YYYYMMDD strings. The outer SELECT groups by PolSource, LOBCode and PolicyNumber, applies DISTINCT, and sums the calculated TransAmount to produce IncurredAmount per policy/LOB. The final result set contains PolSource, LOBCode, PolicyNumber and the aggregated IncurredAmount.
+The script declares start and end date parameters, then executes a multi-layered query. The innermost query joins core ClaimCenter entities (transaction line items, transactions, transaction sets, claims, policies, checks, reserve lines, exposures, coverages, contacts, users, risk units, class codes) and numerous type-code lookup views. It computes a row number for reserve lines per claim/exposure/type/cost, classifies policy source (Legacy vs Guidewire), assigns claim representatives based on state code and subrogation role, maps underwriting company names to codes, formats dates to YYYYMMDD, derives TFG transaction codes via a complex CASE expression driven by transaction type, cost type, reserve erosion flag, and recovery category, determines TFGASL/GWASL coverage codes, calculates an accounting date as the later of line creation and transaction set approval, adjusts transaction amounts (payments negative when eroding reserves, recoveries always negative, reserves positive), formats amounts as signed 12-character strings, and includes deductible formatting for specific EPLI coverages. The middle query applies a secondary TFGTran override for code '431' based on row number and cost type. The outermost query aggregates distinct PolSource, LOBCode, PolicyNumber summing TransAmount as IncurredAmount.
 
 ## Inputs
-- vw_curr_cc_transactionlineitem (tl)
-- vw_curr_cc_transaction (t)
-- vw_curr_cc_transactionset (tset)
-- vw_curr_cc_claim (cl)
-- vw_curr_cc_policy (po)
-- vw_curr_cc_check (ck)
-- vw_curr_cc_reserveline (rl)
-- vw_curr_cc_exposure (ex)
-- vw_curr_cc_coverage (cv)
-- vw_curr_cc_contact (clmcont)
-- vw_curr_cc_user (u1, u2)
-- vw_curr_cc_riskunit (ru)
-- vw_curr_cc_classcode (cls)
-- vw_curr_cctl_lobcode (lob)
-- vw_curr_cctl_policytype (polt)
-- vw_curr_cctl_transaction (tt)
-- vw_curr_cctl_losscause (tlc)
-- vw_curr_cctl_transactionstatus (ts)
-- vw_curr_cctl_costtype (CST)
-- vw_curr_cctl_costcategory (ccat)
-- vw_curr_cctl_linecategory (lc)
-- vw_curr_cctl_transactionlifecyclestate (tls)
-- vw_curr_cctl_recoverycategory (rv)
-- vw_curr_cctl_underwritingcompanytype (uw)
-- vw_curr_cctl_coveragesubtype (st)
-- @PV_STARTDATE (unused)
-- @PV_ENDDATE (unused)
+- @PV_STARTDATE (datetime)
+- @PV_ENDDATE (datetime)
+- vw_curr_cc_transactionlineitem
+- vw_curr_cc_transaction
+- vw_curr_cc_transactionset
+- vw_curr_cc_claim
+- vw_curr_cc_policy
+- vw_curr_cc_check
+- vw_curr_cc_reserveline
+- vw_curr_cc_exposure
+- vw_curr_cc_coverage
+- vw_curr_cc_contact
+- vw_curr_cc_user (as u1, u2)
+- vw_curr_cc_riskunit
+- vw_curr_cc_classcode
+- vw_curr_cctl_lobcode
+- vw_curr_cctl_policytype
+- vw_curr_cctl_transaction
+- vw_curr_cctl_losscause
+- vw_curr_cctl_transactionstatus
+- vw_curr_cctl_costtype
+- vw_curr_cctl_costcategory
+- vw_curr_cctl_linecategory
+- vw_curr_cctl_transactionlifecyclestate
+- vw_curr_cctl_recoverycategory
+- vw_curr_cctl_underwritingcompanytype
+- vw_curr_cctl_coveragesubtype
+- vw_curr_cctl_coveragetype
+- vw_curr_cctl_checkbatching
+- vw_curr_cctl_paymenttype
 
 ## Outputs
-- Result set with columns: PolSource, LOBCode, PolicyNumber, IncurredAmount (sum of TransAmount)
+- PolSource (char)
+- LOBCode (char)
+- IncurredAmount (numeric sum of TransAmount)
+- PolicyNumber (char(10))
 
 ## Key Transformations
-- Derive PolSource as 'Legacy' or 'Guidewire' based on PolicyPrefix_Ext.
-- Generate row_number partitioned by ClaimNumber, exposure, typecode and cost name for reserve lines.
-- Map underwriting company IDs to short codes (LRM, WRM, SON, UNK).
-- Convert dates to CHAR(8) YYYYMMDD format for policy effective dates and accounting dates.
-- Calculate TFGTran code using complex CASE logic that considers transaction type, cost type, rownum and other flags.
-- Determine signed TransAmount: Payments are negative unless DoesNotErodeReserves=1, Recoveries are always negative, others retain sign.
-- Format Amount field with leading zeros and sign handling for reporting.
-- Compute DedStatAmount for specific coverage types with a ceiling of 99999.
-- Aggregate (SUM) TransAmount per PolSource, LOBCode and PolicyNumber, applying DISTINCT to eliminate duplicates.
-- Select only required columns for the final output.
+- Row numbering for reserve lines partitioned by claim, exposure, transaction type, cost type ordered by create time
+- Policy source classification: 'Legacy' when PolicyPrefix_Ext is null else 'Guidewire'
+- ClaimRep1 assignment: Indiana (state '13') uses InRepID_ext, others use OhRepID_ext
+- ClaimRep2 assignment: SubroRepresentative_Ext mapped to SubroRepId_Ext or '00000'
+- Company code mapping: Lightning Rod -> 'LRM', Western Reserve -> 'WRM', Sonnenberg -> 'SON', else 'UNK'
+- Date formatting to CHAR(8) YYYYMMDD for OrigEffectiveDate, EffectiveDate, ExpirationDate, CloseDate, ReOpenDate, ApprovalDate, IssueDate
+- TFGTran code derivation: 431/432 for reserves, 321/331/322/332 for payments (depending on DoesNotErodeReserves and cost type), 321/322/341/342/351/353 for recoveries (depending on recovery category and cost type)
+- Secondary TFGTran override for '431': first indemnity reserve line becomes '421', subsequent '431'; first non-indemnity becomes '422', subsequent '432'
+- TFGASL/GWASL coverage mapping based on coverage type code and loss cause code
+- Accounting date = CASE WHEN tl.CreateTime >= tset.ApprovalDate THEN tl.CreateTime ELSE tset.ApprovalDate END
+- Transaction amount sign logic: Payment with DoesNotErodeReserves=0 => -TransactionAmount; Payment with DoesNotErodeReserves=1 => +TransactionAmount; Recovery => -TransactionAmount; Reserve => +TransactionAmount
+- Amount formatting: signed 12-char string with leading zeros, negative sign prefixed for negative values
+- Deductible formatting for BP7EmploymentPracticesLiabilityInsurance and BP7SupplementalExtendReportingPeriodEPLI: capped at 99999, left-padded
 
 ## Key Dependencies
-- All ClaimCenter view objects prefixed with vw_curr_cc_ (transactionlineitem, transaction, transactionset, claim, policy, check, reserveline, exposure, coverage, contact, user, riskunit, classcode).
-- Lookup tables prefixed with vw_curr_cctl_ (lobcode, policytype, transaction, losscause, transactionstatus, costtype, costcategory, linecategory, transactionlifecyclestate, recoverycategory, underwritingcompanytype, coveragesubtype).
-- SQL Server window function ROW_NUMBER for reserve line sequencing.
-- Standard SQL functions (CASE, ISNULL, CAST, CONVERT, RIGHT, LEFT, UPPER, REPLACE).
+- vw_curr_cc_transactionlineitem
+- vw_curr_cc_transaction
+- vw_curr_cc_transactionset
+- vw_curr_cc_claim
+- vw_curr_cc_policy
+- vw_curr_cc_check
+- vw_curr_cc_reserveline
+- vw_curr_cc_exposure
+- vw_curr_cc_coverage
+- vw_curr_cc_contact
+- vw_curr_cc_user
+- vw_curr_cc_riskunit
+- vw_curr_cc_classcode
+- vw_curr_cctl_lobcode
+- vw_curr_cctl_policytype
+- vw_curr_cctl_transaction
+- vw_curr_cctl_losscause
+- vw_curr_cctl_transactionstatus
+- vw_curr_cctl_costtype
+- vw_curr_cctl_costcategory
+- vw_curr_cctl_linecategory
+- vw_curr_cctl_transactionlifecyclestate
+- vw_curr_cctl_recoverycategory
+- vw_curr_cctl_underwritingcompanytype
+- vw_curr_cctl_coveragesubtype
+- vw_curr_cctl_coveragetype
+- vw_curr_cctl_checkbatching
+- vw_curr_cctl_paymenttype
 
 ## Business Rules
-- If PolicyPrefix_Ext is null, the claim source is classified as 'Legacy'; otherwise 'Guidewire'.
-- For reserve transactions, assign rownum = ROW_NUMBER partitioned by claim and exposure; non‑reserve rows get rownum = 0.
-- TFGTran mapping rules: e.g., Reserve + Indemnity first row => '421', subsequent rows => '431'; Reserve + non‑Indemnity first row => '422', subsequent => '432'; Payment + Indemnity with DoesNotErodeReserves=1 => '321', otherwise '331'; Payment + non‑Indemnity with DoesNotErodeReserves=1 => '322', otherwise '332'; Recovery categories map to specific codes (e.g., Credit_loss + Indemnity => '321', salvage + Indemnity => '341', etc.).
-- TransAmount sign rule: Payments are stored as negative amounts unless DoesNotErodeReserves=1 (then positive); Recoveries are always stored as negative; all other transaction types retain their original sign.
-- DedStatAmount is populated only for specific coverage types (BP7EmploymentPracticesLiabilityInsurance, BP7SupplementalExtendReportingPeriodEPLI) and capped at 99999; otherwise blank.
-- Company code mapping based on underwriting company name: Lightning Rod Mutual => 'LRM', Western Reserve Mutual => 'WRM', Sonnenberg Mutual => 'SON', else 'UNK'.
-- CostType determines TFGASL and GWASL codes using predefined mappings (e.g., CPEquipBrkCov => '270', CPINCCCov => '010', certain claim coverages => '010', else '021').
-- Only distinct combinations of PolSource, LOBCode and PolicyNumber are retained before summing incurred amounts.
+- Reserve lines are sequenced per claim/exposure/type/cost to identify first vs subsequent lines for TFGTran override.
+- Claim representative assignment differs for Indiana (state code '13') versus other states.
+- Subrogation representative defaults to '00000' when not assigned.
+- Underwriting company names map to three known codes; all others become 'UNK'.
+- TFGTran codes follow a strict matrix: transaction type (Reserve, Payment, Recovery) x cost type (Indemnity vs non-Indemnity) x DoesNotErodeReserves flag x recovery category (credit_loss, credit_exp, deductible, salvage, subro, etc.).
+- For transaction type 'Recovery', amount is always negative (recovery reduces incurred).
+- For transaction type 'Payment', amount is negative only when DoesNotErodeReserves = 0 (i.e., payment erodes reserves).
+- Accounting date uses the later of transaction line creation and transaction set approval, defaulting approval to '01/01/2000' when null.
+- TFGASL and GWASL codes differentiate between equipment breakdown ('270'), inland marine ('010'), and other ('021') based on coverage type and loss cause.
+- Deductible amounts for specific EPLI coverages are capped at 99999 and formatted as CHAR(10).

@@ -1,267 +1,297 @@
-Declare @POLSTARTDATE as Date
-Declare @POLENDDATE as Date
-Declare @CHANGESTARTDATE as Date
-Declare @curmthyr as int = concat(month(GETUTCDATE())-1,year(GETUTCDATE()))
+-- ============================================================================
+-- SCRIPT: PolicyCenter_CPP_Breakdown.sql
+-- DOMAIN: PolicyCenter / Commercial Package Policy (CPP) Line Breakdown
+-- PURPOSE: Extracts Commercial Package Policy line-level transactions,
+--          written premium breakdowns across multiple lines (Property, GL,
+--          Auto, Crime, Inland Marine, Workers Comp) for Agribusiness.
+-- SOURCE TABLES:
+--   - PolicyCenter.dbo.pc_policyperiod (pp)
+--   - PolicyCenter.dbo.pc_policy (pol)
+--   - PolicyCenter.dbo.pc_policyTerm (polt)
+--   - PolicyCenter.dbo.pc_policyline (polline)
+--   - PolicyCenter.dbo.pc_job (j)
+--   - PolicyCenter.dbo.pc_account (act)
+--   - PolicyCenter.dbo.pc_producercode (prod)
+--   - PolicyCenter.dbo.pc_organization (org)
+--   - PolicyCenter.dbo.pctl_job (jt)
+--   - PolicyCenter.dbo.pctl_policyperiodstatus (ppst)
+--   - PolicyCenter.dbo.pctl_bindoption (bopt)
+--   - PolicyCenter.dbo.pctl_uwcompanycode (uwc)
+--   - PolicyCenter.dbo.pctl_jobdescription_ext (jdt)
+--   - PolicyCenter.dbo.pctl_policyperiodsourcetype (ppstype)
+--   - PolicyCenter.dbo.pctl_profitcentertype (profit)
+--   - PolicyCenter.dbo.pctl_orgfarmuwterritory (farmterr)
+--   - Line Transaction Tables: pcx_cp7transaction, pcx_gl7transaction_gle,
+--                              pcx_ca7transaction, pcx_cr7transaction,
+--                              pc_imtransaction, pcx_wc7transaction
+-- TARGET: Commercial Package Line-Level Premium Extract (Agribusiness)
+-- ============================================================================
 
-Set @POLSTARTDATE = '8/1/2025'
-Set @POLENDDATE = '7/31/2026'
-Set @CHANGESTARTDATE = '7/1/2026'
+DECLARE @POLSTARTDATE AS Date;
+DECLARE @POLENDDATE AS Date;
+DECLARE @CHANGESTARTDATE AS Date;
+DECLARE @curmthyr AS int = concat(month(GETUTCDATE()) - 1, year(GETUTCDATE()));
 
-select
-ProfitCenter,ProductCode,LineOfBusiness,PolicyNumber,OriginalEffectiveDate,PeriodStart,PeriodEnd,AccountNumber,Company,PrimaryInsuredName,AgentCode,AgentName,FarmUWTerritory
-,case
-	when MostRecentModel = 1 then TranType
-	else Null end as MostRecentTran
-,case
-	when TranType in ('Renewal','Submission') then Written_Premium
-	else null end as SubWritten_Premium
-,case 
-	when TranType in ('Renewal','Submission') then WrittenDate
-	else null end as SubWritten_Date
-,case
-	when TranType in ('Cancellation') then CancellationDate
-	else null end as CancelledDate
-,case
-	when TranType in ('Cancellation') then JobCloseDate
-	else null end as CancelledEffDate
-,case
-	when TranType in ('Cancellation') then Written_Premium
-	else null end as CancelledPremium
-,case
-	when TranType in ('Reinstatement') then Written_Premium
-	else null end as ReinstatedPremium
-,case 
-	when TranType in ('Reinstatement') then WrittenDate
-	else null end as ReinstatedDate
-,case 
-	when TranType in ('Reinstatement') then JobCloseDate
-	else null end as ReinstatedEffDate
-,case
-	when TranType in ('PolicyChange')  then Written_Premium
-	else null end as ChangePremium
-,case 
-	when TranType in ('PolicyChange') then EditEffectiveDate
-	else null end as ChangeDate
-from(
-SELECT  
-		profit.NAME	as ProfitCenter,
-	    ProductCode,
-		--PatternCode,
-		case
-			when PatternCode = 'cp7line'					then 'Commercial Property Line'		
-			when PatternCode = 'GeneralLiabilityLine_GLE'   then 'General Liability Line'
-			when PatternCode = 'ca7line'					then 'Commercial Auto Line'
-			when PatternCode = 'cr7line'					then 'Crime Line'
-			when PatternCode = 'imline'						then 'Inland Marine Line'
-			when PatternCode = 'WC7Line'					then 'Workers Comp Line'
-			else PatternCode					
-			end as LineofBusiness,
-		
-		pp.PolicyNumber
-	
-		,LegacyPolicyNumber
-		--,ppstype.NAME				as PolPerSourceType
-		,AccountNumber
-		,case 
-			--when UWCompany = 1 then 'WRM'  
-			--when UWCompany = 2 then 'LRM'
-			--when UWCompany = 3 then 'SON'
-			when uwc.name = 'Lightning Rod Mutual'   then 'LRM'
-			when uwc.name = 'Western Reserve Mutual' then 'WRM'
-			when uwc.name = 'Sonnenberg Mutual'		 then 'SON'
-			else 'UNK'
-			end						as Company
-		
-		,pp.ID			as PolPerID
-		--,BranchNumber
-		,pp.PeriodID
-		,pp.TermNumber
-		
-		--,AccountNumber
-		 --,pp.[PrimaryInsuredName]
+SET @POLSTARTDATE = '8/1/2025';
+SET @POLENDDATE = '7/31/2026';
+SET @CHANGESTARTDATE = '7/1/2026';
 
-		  ,(select distinct PrimaryInsuredName from pc_policyperiod pp2 
-					where pp.PolicyNumber = pp2.PolicyNumber
-					and pp.PeriodStart  = pp2.PeriodStart
-					and pp2.MostRecentModel = 1)  as PrimaryInsuredName
-		
-		,cast((rtrim(org.Code_Ext))	as char(6))	as AgentCode
-		,org.Name								as AgentName
-		,farmterr.NAME							as FarmUWTerritory
-		
-		
-		,case 
-			when prod.code is null then '999' 
-			else right(rtrim(prod.code),3)
-		 end						as ProducerCode
-		
-		--,[JobID]
-		,JobNumber
-		,j.CloseDate		as JobCloseDate
-		
-		,jt.TYPECODE				as TranType
-		,isnull(bopt.NAME,'')		as BindOpt 
-		,jdt.name					as JobDesc
-		,ppst.TYPECODE				as PolPerStatus
-		
-	    ,[MostRecentModel]
-		,pp.[CreateTime]
-		,[EditEffectiveDate]
-		,pol.IssueDate
-		,pol.OriginalEffectiveDate
-	
-		,[PeriodStart]	 
-		,[PeriodEnd]	 
-		,[CancellationDate]
-		
-		,[WrittenDate]
-		
-		,case
-			when ProductCode = 'CommercialPackage' then
-				case
-					when PatternCode = 'cp7line' then
-						(select isnull(sum(amount),0.00) FROM pcx_cp7transaction tr 	where tr.BranchID		= pp.id)
-							
-					when PatternCode = 'GeneralLiabilityLine_GLE' then
-						(select isnull(sum(amount),0.00) FROM pcx_gl7transaction_gle tr 	where tr.BranchID	= pp.id)
-							
-					when PatternCode = 'ca7line' then
-						(select isnull(sum(amount),0.00) FROM pcx_ca7transaction tr  where tr.BranchID		= pp.id)
-							
-					when PatternCode = 'cr7line' then
-						(select isnull(sum(amount),0.00) FROM pcx_cr7transaction tr  where tr.BranchID		= pp.id)
-							 
-					when PatternCode = 'imline' then
-						(select isnull(sum(amount),0.00) FROM pc_imtransaction tr where tr.BranchID			= pp.id)
+SELECT
+    ProfitCenter,
+    ProductCode,
+    LineOfBusiness,
+    PolicyNumber,
+    OriginalEffectiveDate,
+    PeriodStart,
+    PeriodEnd,
+    AccountNumber,
+    Company,
+    PrimaryInsuredName,
+    AgentCode,
+    AgentName,
+    FarmUWTerritory,
+    CASE
+        WHEN MostRecentModel = 1 THEN TranType
+        ELSE NULL
+    END AS MostRecentTran,
+    CASE
+        WHEN TranType IN ('Renewal', 'Submission') THEN Written_Premium
+        ELSE NULL
+    END AS SubWritten_Premium,
+    CASE 
+        WHEN TranType IN ('Renewal', 'Submission') THEN WrittenDate
+        ELSE NULL
+    END AS SubWritten_Date,
+    CASE
+        WHEN TranType IN ('Cancellation') THEN CancellationDate
+        ELSE NULL
+    END AS CancelledDate,
+    CASE
+        WHEN TranType IN ('Cancellation') THEN JobCloseDate
+        ELSE NULL
+    END AS CancelledEffDate,
+    CASE
+        WHEN TranType IN ('Cancellation') THEN Written_Premium
+        ELSE NULL
+    END AS CancelledPremium,
+    CASE
+        WHEN TranType IN ('Reinstatement') THEN Written_Premium
+        ELSE NULL
+    END AS ReinstatedPremium,
+    CASE 
+        WHEN TranType IN ('Reinstatement') THEN WrittenDate
+        ELSE NULL
+    END AS ReinstatedDate,
+    CASE 
+        WHEN TranType IN ('Reinstatement') THEN JobCloseDate
+        ELSE NULL
+    END AS ReinstatedEffDate,
+    CASE
+        WHEN TranType IN ('PolicyChange') THEN Written_Premium
+        ELSE NULL
+    END AS ChangePremium,
+    CASE 
+        WHEN TranType IN ('PolicyChange') THEN EditEffectiveDate
+        ELSE NULL
+    END AS ChangeDate
+FROM (
+    SELECT  
+        profit.NAME AS ProfitCenter,
+        pp.ProductCode,
+        CASE
+            WHEN pp.PatternCode = 'cp7line'                  THEN 'Commercial Property Line'		
+            WHEN pp.PatternCode = 'GeneralLiabilityLine_GLE' THEN 'General Liability Line'
+            WHEN pp.PatternCode = 'ca7line'                  THEN 'Commercial Auto Line'
+            WHEN pp.PatternCode = 'cr7line'                  THEN 'Crime Line'
+            WHEN pp.PatternCode = 'imline'                   THEN 'Inland Marine Line'
+            WHEN pp.PatternCode = 'WC7Line'                  THEN 'Workers Comp Line'
+            ELSE pp.PatternCode					
+        END AS LineOfBusiness,
+        pp.PolicyNumber,
+        pp.LegacyPolicyNumber,
+        pp.AccountNumber,
+        CASE 
+            WHEN uwc.name = 'Lightning Rod Mutual'   THEN 'LRM'
+            WHEN uwc.name = 'Western Reserve Mutual' THEN 'WRM'
+            WHEN uwc.name = 'Sonnenberg Mutual'      THEN 'SON'
+            ELSE 'UNK'
+        END AS Company,
+        pp.ID AS PolPerID,
+        pp.PeriodID,
+        pp.TermNumber,
+        (
+            SELECT DISTINCT pp2.PrimaryInsuredName 
+            FROM [PolicyCenter].[dbo].[pc_policyperiod] pp2 
+            WHERE pp.PolicyNumber = pp2.PolicyNumber
+              AND pp.PeriodStart  = pp2.PeriodStart
+              AND pp2.MostRecentModel = 1
+        ) AS PrimaryInsuredName,
+        CAST((rtrim(org.Code_Ext)) AS char(6)) AS AgentCode,
+        org.Name AS AgentName,
+        farmterr.NAME AS FarmUWTerritory,
+        CASE 
+            WHEN prod.code IS NULL THEN '999' 
+            ELSE right(rtrim(prod.code), 3)
+        END AS ProducerCode,
+        pp.JobNumber,
+        j.CloseDate AS JobCloseDate,
+        jt.TYPECODE AS TranType,
+        ISNULL(bopt.NAME, '') AS BindOpt,
+        jdt.name AS JobDesc,
+        ppst.TYPECODE AS PolPerStatus,
+        pp.MostRecentModel,
+        pp.CreateTime,
+        pp.EditEffectiveDate,
+        pol.IssueDate,
+        pol.OriginalEffectiveDate,
+        pp.PeriodStart,	 
+        pp.PeriodEnd,	 
+        pp.CancellationDate,
+        pp.WrittenDate,
+        CASE
+            WHEN pp.ProductCode = 'CommercialPackage' THEN
+                CASE
+                    WHEN pp.PatternCode = 'cp7line' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pcx_cp7transaction] tr WHERE tr.BranchID = pp.id)
+                    WHEN pp.PatternCode = 'GeneralLiabilityLine_GLE' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pcx_gl7transaction_gle] tr WHERE tr.BranchID = pp.id)
+                    WHEN pp.PatternCode = 'ca7line' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pcx_ca7transaction] tr WHERE tr.BranchID = pp.id)
+                    WHEN pp.PatternCode = 'cr7line' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pcx_cr7transaction] tr WHERE tr.BranchID = pp.id)
+                    WHEN pp.PatternCode = 'imline' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pc_imtransaction] tr WHERE tr.BranchID = pp.id)
+                    WHEN pp.PatternCode = 'WC7Line' THEN
+                        (SELECT ISNULL(SUM(amount), 0.00) FROM [PolicyCenter].[dbo].[pcx_wc7transaction] tr WHERE tr.BranchID = pp.id)
+                END
+            ELSE pp.TransactionCostRPT
+        END AS Written_Premium,
+        pp.TotalPremiumRPT,
+        pp.TotalCostRPT 
+    FROM [PolicyCenter].[dbo].[pc_policyperiod] pp
+    LEFT JOIN [PolicyCenter].[dbo].[pc_policy] pol (NOLOCK) 
+        ON pp.policyid = pol.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_policyTerm] polt (NOLOCK) 
+        ON pp.policytermid = polt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_policyline] polline (NOLOCK) 
+        ON polline.branchid = pp.id
+       AND COALESCE(polline.EffectiveDate, pp.PeriodStart) <> COALESCE(polline.ExpirationDate, pp.PeriodEnd)
+    LEFT JOIN [PolicyCenter].[dbo].[pc_job] j (NOLOCK) 
+        ON pp.jobid = j.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_account] act (NOLOCK) 
+        ON pol.AccountID = act.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_producercode] prod (NOLOCK) 
+        ON pp.ProducerCodeOfRecordID = prod.id 
+    LEFT JOIN [PolicyCenter].[dbo].[pc_organization] org (NOLOCK) 
+        ON prod.OrganizationID = org.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_job] jt (NOLOCK) 
+        ON j.SubType = jt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_policyperiodstatus] ppst (NOLOCK) 
+        ON pp.status = ppst.ID
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_bindoption] bopt (NOLOCK) 
+        ON j.BindOption = bopt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_uwcompanycode] uwc (NOLOCK) 
+        ON pp.UWCompany = uwc.TYPECODE
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_jobdescription_ext] jdt (NOLOCK) 
+        ON j.DescriptionTL = jdt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_policyperiodsourcetype] ppstype (NOLOCK) 
+        ON ppstype.id = pp.PolicyPeriodSource
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_profitcentertype] profit (NOLOCK) 
+        ON pp.ProfitCenterType = profit.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_orgfarmuwterritory] farmterr (NOLOCK) 
+        ON pp.FarmUWTerritory = farmterr.id
+    WHERE pol.IssueDate IS NOT NULL 
+      AND pp.Policynumber IS NOT NULL
+      AND (ppst.TYPECODE IN ('Bound', 'AuditComplete'))
+      AND j.CloseDate < @POLENDDATE
 
-					when PatternCode = 'WC7Line' then
-						(select isnull(sum(amount),0.00) FROM pcx_wc7transaction tr where tr.BranchID		= pp.id)
-						
-					end
-			
-			else TransactionCostRPT --TotalCostRPT
-			end as Written_Premium
-		,[TotalPremiumRPT]
-		,[TotalCostRPT] 
-  FROM [PolicyCenter].[dbo].[pc_policyperiod] pp
-  left join [PolicyCenter].[dbo].pc_policy pol					(nolock) on pp.policyid		= pol.id
-  left join [PolicyCenter].[dbo].pc_policyTerm polt				(nolock) on pp.policytermid = polt.id
-  
-  left join [PolicyCenter].[dbo].[pc_policyline] polline		(nolock) on polline.branchid = pp.id
-											and coalesce(polline.EffectiveDate, PeriodStart) <> coalesce(polline.ExpirationDate, PeriodEnd)
-											--and polline.ExpirationDate is null
-  
-  left join [PolicyCenter].[dbo].[pc_job] j						(nolock) on pp.jobid		= j.id
-  left join [PolicyCenter].[dbo].[pc_account] act				(nolock) on pol.AccountID	= act.id
-  --left join [PolicyCenter].[dbo].[pc_user] u					(nolock) on pp.CreateUserID	= u.id
-  
-  left join pc_producercode prod								(nolock) on pp.ProducerCodeOfRecordID	= prod.id 
-  left join pc_organization org									(nolock) on prod.OrganizationID			= org.id
+    UNION ALL
 
-
-  left join [PolicyCenter].[dbo].[pctl_job] jt					(nolock) on j.SubType		= jt.id
-  left join [PolicyCenter].[dbo].pctl_policyperiodstatus ppst	(noLock) ON pp.status		= ppst.ID
-  left join [PolicyCenter].[dbo].pctl_bindoption bopt			(nolock) on j.BindOption	= bopt.id
-  left join [PolicyCenter].[dbo].pctl_uwcompanycode uwc			(nolock) on pp.UWCompany	= uwc.TYPECODE
-   -- for change type
-  left join [PolicyCenter].[dbo].pctl_jobdescription_ext jdt	(nolock) on j.DescriptionTL	= jdt.id
-  left join pctl_policyperiodsourcetype ppstype							 on ppstype.id		= pp.PolicyPeriodSource
-  -- get profit center
-   left join pctl_profitcentertype profit                       (nolock) on ProfitCenterType	= profit.id
-   -- get FarmUWTerr
-   left join pctl_orgfarmuwterritory farmterr					(nolock) on FarmUWTerritory		= farmterr.id
-  
-  where --j.CloseDate is not null 
-  pol.IssueDate is not null 
-  and pp.Policynumber is not null
-  and (ppst.TYPECODE in ('Bound','AuditComplete')) -- and bopt.NAME <> 'BindOnly') 
-  and j.CloseDate < @POLENDDATE
-   union all
- SELECT  
-
-		profit.NAME	as ProfitCenter,
-	    ProductCode,
-		'C.P.P.'   as LineOfBusiness,
-		pp.PolicyNumber
-		
-		,LegacyPolicyNumber
-		--,ppstype.NAME				as PolPerSourceType
-		,AccountNumber
-		,case 
-			when uwc.name = 'Lightning Rod Mutual'   then 'LRM'
-			when uwc.name = 'Western Reserve Mutual' then 'WRM'
-			when uwc.name = 'Sonnenberg Mutual'		 then 'SON'
-			else 'UNK'
-			end						as Company
-		
-		,pp.ID			as PolPerID
-		,pp.PeriodID
-		,pp.TermNumber
-		,(select distinct PrimaryInsuredName from pc_policyperiod pp2 
-					where pp.PolicyNumber = pp2.PolicyNumber
-					  and pp.PeriodStart  = pp2.PeriodStart
-					and pp2.MostRecentModel = 1)  as PrimaryInsuredName
-		
-		,cast((rtrim(org.Code_Ext))	as char(6))	as AgentCode
-		,org.Name								as AgentName
-		,farmterr.NAME							as FarmUWTerritory
-		,case 
-			when prod.code is null then '999' 
-			else right(rtrim(prod.code),3)
-		 end						as ProducerCode
-		
-		--,[JobID]
-		,JobNumber
-		,j.CloseDate				as JobCloseDate
-		
-		,jt.TYPECODE				as TranType
-		,isnull(bopt.NAME,'')		as BindOpt 
-		,jdt.name					as JobDesc
-		,ppst.TYPECODE				as PolPerStatus
-				 
-		 ,[MostRecentModel]
-		,pp.[CreateTime]
-		,[EditEffectiveDate]
-		,pol.IssueDate
-		,pol.OriginalEffectiveDate
-		,[PeriodStart]	 
-		,[PeriodEnd]	 
-		,[CancellationDate]
-		,[WrittenDate]
-		,TransactionCostRPT  as Written_Premium
-		,[TotalPremiumRPT]
-		,[TotalCostRPT] 
-		
-  FROM [PolicyCenter].[dbo].[pc_policyperiod] pp
-  left join [PolicyCenter].[dbo].pc_policy pol					(nolock) on pp.policyid		= pol.id
-  left join [PolicyCenter].[dbo].pc_policyTerm polt				(nolock) on pp.policytermid = polt.id
- left join [PolicyCenter].[dbo].[pc_job] j						(nolock) on pp.jobid		= j.id
-  left join [PolicyCenter].[dbo].[pc_account] act				(nolock) on pol.AccountID	= act.id
-  left join pc_producercode prod								(nolock) on pp.ProducerCodeOfRecordID	= prod.id 
-  left join pc_organization org									(nolock) on prod.OrganizationID			= org.id
-  left join [PolicyCenter].[dbo].[pctl_job] jt					(nolock) on j.SubType		= jt.id
-  left join [PolicyCenter].[dbo].pctl_policyperiodstatus ppst	(noLock) ON pp.status		= ppst.ID
-  left join [PolicyCenter].[dbo].pctl_bindoption bopt			(nolock) on j.BindOption	= bopt.id
-  left join [PolicyCenter].[dbo].pctl_uwcompanycode uwc			(nolock) on pp.UWCompany	= uwc.TYPECODE
-   -- for change type
-  left join [PolicyCenter].[dbo].pctl_jobdescription_ext jdt	(nolock) on j.DescriptionTL	= jdt.id
-  left join pctl_policyperiodsourcetype ppstype							 on ppstype.id		= pp.PolicyPeriodSource
-  -- get profit center
-   left join pctl_profitcentertype profit                       (nolock) on ProfitCenterType	= profit.id
-   -- get FarmUWTerr
-   left join pctl_orgfarmuwterritory farmterr					(nolock) on FarmUWTerritory		= farmterr.id
-  
-  
-  where j.CloseDate is not null 
-  and pol.IssueDate is not null 
-  and pp.Policynumber is not null
-  and (ppst.TYPECODE in ('Bound','AuditComplete')) -- and bopt.NAME <> 'BindOnly')   
-  and ProductCode = 'CommercialPackage' 
-  and j.CloseDate < @POLENDDATE
-  )jj
-where-- LineOfBusiness = 'Commercial Property Line'
---and cancellationdate is null
-((PeriodStart between @POLSTARTDATE and @POLENDDATE) OR JobCloseDate between @POLSTARTDATE and @POLENDDATE)
-and ((ProductCode = 'CommercialPackage' AND LineOfBusiness not in ('C.P.P.')))
-and ProfitCenter = 'Agribusiness'
-order by PolicyNumber
+    SELECT  
+        profit.NAME AS ProfitCenter,
+        pp.ProductCode,
+        'C.P.P.' AS LineOfBusiness,
+        pp.PolicyNumber,
+        pp.LegacyPolicyNumber,
+        pp.AccountNumber,
+        CASE 
+            WHEN uwc.name = 'Lightning Rod Mutual'   THEN 'LRM'
+            WHEN uwc.name = 'Western Reserve Mutual' THEN 'WRM'
+            WHEN uwc.name = 'Sonnenberg Mutual'      THEN 'SON'
+            ELSE 'UNK'
+        END AS Company,
+        pp.ID AS PolPerID,
+        pp.PeriodID,
+        pp.TermNumber,
+        (
+            SELECT DISTINCT pp2.PrimaryInsuredName 
+            FROM [PolicyCenter].[dbo].[pc_policyperiod] pp2 
+            WHERE pp.PolicyNumber = pp2.PolicyNumber
+              AND pp.PeriodStart  = pp2.PeriodStart
+              AND pp2.MostRecentModel = 1
+        ) AS PrimaryInsuredName,
+        CAST((rtrim(org.Code_Ext)) AS char(6)) AS AgentCode,
+        org.Name AS AgentName,
+        farmterr.NAME AS FarmUWTerritory,
+        CASE 
+            WHEN prod.code IS NULL THEN '999' 
+            ELSE right(rtrim(prod.code), 3)
+        END AS ProducerCode,
+        pp.JobNumber,
+        j.CloseDate AS JobCloseDate,
+        jt.TYPECODE AS TranType,
+        ISNULL(bopt.NAME, '') AS BindOpt,
+        jdt.name AS JobDesc,
+        ppst.TYPECODE AS PolPerStatus,
+        pp.MostRecentModel,
+        pp.CreateTime,
+        pp.EditEffectiveDate,
+        pol.IssueDate,
+        pol.OriginalEffectiveDate,
+        pp.PeriodStart,	 
+        pp.PeriodEnd,	 
+        pp.CancellationDate,
+        pp.WrittenDate,
+        pp.TransactionCostRPT AS Written_Premium,
+        pp.TotalPremiumRPT,
+        pp.TotalCostRPT 
+    FROM [PolicyCenter].[dbo].[pc_policyperiod] pp
+    LEFT JOIN [PolicyCenter].[dbo].[pc_policy] pol (NOLOCK) 
+        ON pp.policyid = pol.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_policyTerm] polt (NOLOCK) 
+        ON pp.policytermid = polt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_job] j (NOLOCK) 
+        ON pp.jobid = j.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_account] act (NOLOCK) 
+        ON pol.AccountID = act.id
+    LEFT JOIN [PolicyCenter].[dbo].[pc_producercode] prod (NOLOCK) 
+        ON pp.ProducerCodeOfRecordID = prod.id 
+    LEFT JOIN [PolicyCenter].[dbo].[pc_organization] org (NOLOCK) 
+        ON prod.OrganizationID = org.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_job] jt (NOLOCK) 
+        ON j.SubType = jt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_policyperiodstatus] ppst (NOLOCK) 
+        ON pp.status = ppst.ID
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_bindoption] bopt (NOLOCK) 
+        ON j.BindOption = bopt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_uwcompanycode] uwc (NOLOCK) 
+        ON pp.UWCompany = uwc.TYPECODE
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_jobdescription_ext] jdt (NOLOCK) 
+        ON j.DescriptionTL = jdt.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_policyperiodsourcetype] ppstype (NOLOCK) 
+        ON ppstype.id = pp.PolicyPeriodSource
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_profitcentertype] profit (NOLOCK) 
+        ON pp.ProfitCenterType = profit.id
+    LEFT JOIN [PolicyCenter].[dbo].[pctl_orgfarmuwterritory] farmterr (NOLOCK) 
+        ON pp.FarmUWTerritory = farmterr.id
+    WHERE j.CloseDate IS NOT NULL 
+      AND pol.IssueDate IS NOT NULL 
+      AND pp.Policynumber IS NOT NULL
+      AND (ppst.TYPECODE IN ('Bound', 'AuditComplete'))
+      AND pp.ProductCode = 'CommercialPackage' 
+      AND j.CloseDate < @POLENDDATE
+) jj
+WHERE ((PeriodStart BETWEEN @POLSTARTDATE AND @POLENDDATE) OR (JobCloseDate BETWEEN @POLSTARTDATE AND @POLENDDATE))
+  AND ((ProductCode = 'CommercialPackage' AND LineOfBusiness NOT IN ('C.P.P.')))
+  AND ProfitCenter = 'Agribusiness'
+ORDER BY PolicyNumber;

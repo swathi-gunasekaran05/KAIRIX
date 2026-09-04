@@ -22,7 +22,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
 from .embedder import Embedder
-from .qdrant_client_wrapper import QdrantWrapper, COLLECTION_CHUNKS, COLLECTION_SUMMARIES
+from .pinecone_client_wrapper import (
+    PineconeWrapper,
+    COLLECTION_CHUNKS,
+    COLLECTION_SUMMARIES,
+)
 
 load_dotenv()
 
@@ -30,10 +34,15 @@ _CHUNK_SIZE = 50    # lines per chunk
 _CHUNK_OVERLAP = 10  # lines of overlap between chunks
 
 
+def get_vector_client() -> PineconeWrapper:
+    """Return configured cloud vector database client (Pinecone)."""
+    return PineconeWrapper()
+
+
 class VectorIngestion:
     """
     Reads KnowledgePackage JSONs + raw source files + summaries,
-    then embeds and stores them in Qdrant.
+    then embeds and stores them in Pinecone Cloud.
 
     Usage:
         ingestion = VectorIngestion(
@@ -49,13 +58,14 @@ class VectorIngestion:
         knowledge_dir: str = "output/knowledge",
         source_dir: str = "source",
         summaries_dir: str = "output/summaries",
-        qdrant: Optional[QdrantWrapper] = None,
+        vector_client: Optional[PineconeWrapper] = None,
         embedder: Optional[Embedder] = None,
     ):
         self.knowledge_dir = Path(knowledge_dir)
         self.source_dir = Path(source_dir)
         self.summaries_dir = Path(summaries_dir)
-        self.qdrant = qdrant or QdrantWrapper()
+        self.vector_client = vector_client or get_vector_client()
+        self.qdrant = self.vector_client  # internal client reference
         self.embedder = embedder or Embedder()
 
     # ── Public API ─────────────────────────────────────────────────────────────
@@ -194,7 +204,7 @@ class VectorIngestion:
             n = self.qdrant.upsert(COLLECTION_CHUNKS, vectors, payloads, ids=ids)
             total_points += n
             processed_files += 1
-            print(f"  [+] {file_name}: {len(chunks)} chunks → {n} points")
+            print(f"  [+] {file_name}: {len(chunks)} chunks -> {n} points")
 
         return {"chunk_files": processed_files, "chunk_points": total_points}
 

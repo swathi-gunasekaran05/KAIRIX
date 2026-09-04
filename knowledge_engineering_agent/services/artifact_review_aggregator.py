@@ -58,40 +58,19 @@ Return ONLY JSON matching the supplied schema.
             schema=ARTIFACT_REVIEW_SCHEMA,
         )
 
-        return ArtifactReview(
-            overall_status=str(
-                result["overall_status"]
-            ),
+        try:
+            return ArtifactReview.model_validate(result)
+        except Exception:
+            try:
+                confidence_val = float(result.get("confidence", 0.0) or 0.0)
+            except (ValueError, TypeError):
+                confidence_val = 0.0
 
-            parser_output_quality=str(
-                result["parser_output_quality"]
-            ),
-
-            observations=[
-                str(x)
-                for x in result.get(
-                    "observations",
-                    [],
-                )
-            ],
-
-            missing_information=[
-                str(x)
-                for x in result.get(
-                    "missing_information",
-                    [],
-                )
-            ],
-
-            warnings=[
-                str(x)
-                for x in result.get(
-                    "warnings",
-                    [],
-                )
-            ],
-
-            confidence=float(
-                result["confidence"]
-            ),
-        )
+            return ArtifactReview(
+                overall_status=str(result.get("overall_status", "valid_with_warnings")),
+                parser_output_quality=str(result.get("parser_output_quality", "partial")),
+                observations=[str(x) for x in (result.get("observations") or [])],
+                missing_information=[str(x) for x in (result.get("missing_information") or [])],
+                warnings=[str(x) for x in (result.get("warnings") or [])],
+                confidence=confidence_val,
+            )

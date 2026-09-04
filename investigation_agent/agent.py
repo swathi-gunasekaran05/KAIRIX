@@ -18,11 +18,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from graph_layer.neo4j_client import Neo4jClient
-from vector_layer.qdrant_client_wrapper import (
-    QdrantWrapper,
+from vector_layer.vector_ingestion import get_vector_client
+from vector_layer.pinecone_client_wrapper import (
     COLLECTION_CHUNKS,
     COLLECTION_SUMMARIES,
+    PineconeWrapper,
 )
+
+QdrantWrapper = PineconeWrapper  # Backward compatibility alias for test patching
 from vector_layer.embedder import Embedder
 from knowledge_engineering_agent.services.llm_client import LLMClient
 
@@ -65,21 +68,76 @@ class InvestigationAgent:
     def __init__(
         self,
         neo4j_client: Optional[Neo4jClient] = None,
-        qdrant: Optional[QdrantWrapper] = None,
+        vector_client: Optional[Any] = None,
+        qdrant: Optional[Any] = None,
         embedder: Optional[Embedder] = None,
         llm: Optional[LLMClient] = None,
         top_k_vectors: int = 8,
         max_graph_results: int = 25,
+        min_relevance_score: float = 0.35,
         debug: bool = False,
     ):
         self.debug = debug
         self.neo4j = neo4j_client or Neo4jClient(silent=not debug)
-        self.qdrant = qdrant or QdrantWrapper(silent=not debug)
+        self.qdrant = vector_client or qdrant or get_vector_client()
         self.embedder = embedder or Embedder(silent=not debug)
         self.llm = llm or LLMClient(debug=debug)
         self.top_k_vectors = top_k_vectors
         self.max_graph_results = max_graph_results
+        self.min_relevance_score = min_relevance_score
         self.normalizer = EvidenceNormalizer()
+
+    def _check_greeting(self, question: str) -> Optional[str]:
+        """Detect greetings, pleasantries, or festive wishes and return a direct conversational response."""
+        q = question.strip().lower()
+        q_clean = re.sub(r"[^\w\s]", "", q).strip()
+
+        # Onam festival greeting
+        if "onam" in q_clean:
+            return (
+                "ANSWER\n"
+                "Happy Onam! 🌸🌾 Wishing you and your family joy, peace, and prosperity!\n\n"
+                "I am the KAIRIX Reverse Engineering Agent. Whenever you are ready, feel free to ask me "
+                "about business rules, calculation formulas, or data lineage across your COBOL, SSIS, and SQL systems."
+            )
+
+        # General greetings
+        greetings = {
+            "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+            "greetings", "howdy", "sup", "namaste", "vanakkam", "hola"
+        }
+        words = q_clean.split()
+        if q_clean in greetings or (words and words[0] in greetings and len(words) <= 3):
+            return (
+                "ANSWER\n"
+                "Hello! I am the KAIRIX Reverse Engineering Agent.\n\n"
+                "I can assist you with investigating business logic, mathematical formulas, "
+                "data pipelines, and database schemas across your legacy COBOL, SSIS, and SQL systems. "
+                "What would you like to investigate?"
+            )
+
+        # Gratitude
+        thanks = {"thanks", "thank you", "thank you very much", "thx", "appreciate it"}
+        if q_clean in thanks or any(q_clean.startswith(t) for t in thanks):
+            return (
+                "ANSWER\n"
+                "You're very welcome! Let me know if you need any further analysis of the legacy codebase."
+            )
+
+        # Agent Identity / Help
+        help_phrases = {"who are you", "what can you do", "what are you", "help", "what is kairix"}
+        if q_clean in help_phrases:
+            return (
+                "ANSWER\n"
+                "I am the KAIRIX Reverse Engineering Agent (Layer 4).\n\n"
+                "I help engineers understand and reverse-engineer legacy insurance systems:\n"
+                "• Tracing calculations and extracting exact mathematical formulas (COBOL)\n"
+                "• Mapping ETL pipelines and transformations (SSIS)\n"
+                "• Querying schemas, tables, and business views (SQL)\n"
+                "• Performing cross-system data lineage and impact analysis."
+            )
+
+        return None
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -99,6 +157,70 @@ class InvestigationAgent:
         Returns:
             InvestigationResult with natural-language answer, source-aware metadata models, and audit trail.
         """
+        # Fast path: Check for greeting or pleasantry (no codebase search, no sources)
+        greeting_response = self._check_greeting(question)
+        if greeting_response:
+            empty_scope = InvestigationScope(query=question, selected_files=[], intent="greeting", systems_checked=[])
+            empty_norm = NormalizedInvestigationResult(
+                question=question,
+                intent="greeting",
+                investigation=empty_scope,
+                sources=[],
+            )
+            return InvestigationResult(
+                question=question,
+                answer=greeting_response,
+                confidence=1.0,
+                intent="greeting",
+                source_files=[],
+                graph_evidence=[],
+                vector_evidence=[],
+                trace_path=["Greeting/conversational query handled directly without codebase search."],
+                investigation=empty_scope,
+                sources=[],
+                metadata=empty_norm,
+                normalized_result=empty_norm,
+            )
+
+        # Fast path: Check for obvious non-domain queries (politics, weather, general trivia)
+        q_lower = question.lower()
+        non_domain_keywords = [
+            "prime minister", "president", "capital of", "weather in",
+            "who is the ceo of apple", "who is the ceo of google",
+            "recipe for", "how to cook", "tell me a joke",
+        ]
+        if any(kw in q_lower for kw in non_domain_keywords):
+            answer = (
+                "ANSWER\n"
+                "The KAIRIX knowledge base contains technical and business information "
+                "related to the legacy insurance system (COBOL programs, SSIS ETL packages, "
+                "and SQL database views). It does not contain general world knowledge, political "
+                "information, or external current affairs.\n\n"
+                "CONFIDENCE\n"
+                "Low — 0%"
+            )
+            empty_scope = InvestigationScope(query=question, selected_files=[], intent="out_of_domain", systems_checked=[])
+            empty_norm = NormalizedInvestigationResult(
+                question=question,
+                intent="out_of_domain",
+                investigation=empty_scope,
+                sources=[],
+            )
+            return InvestigationResult(
+                question=question,
+                answer=answer,
+                confidence=0.0,
+                intent="out_of_domain",
+                source_files=[],
+                graph_evidence=[],
+                vector_evidence=[],
+                trace_path=["Out-of-domain query detected. No codebase search performed."],
+                investigation=empty_scope,
+                sources=[],
+                metadata=empty_norm,
+                normalized_result=empty_norm,
+            )
+
         trace: List[str] = []
         graph_evidence: List[str] = []
         vector_evidence: List[str] = []
@@ -147,7 +269,7 @@ class InvestigationAgent:
 
         # ── Step 3: Scoped Vector retrieval ───────────────────────────────────
         if self.debug:
-            print("[DEBUG] Running Qdrant vector search...", flush=True)
+            print("[DEBUG] Running vector search...", flush=True)
         chunks, summaries = self._vector_retrieve(question, scoped_files=scoped_files)
 
         for hit in chunks + summaries:
@@ -165,12 +287,12 @@ class InvestigationAgent:
 
         # ── Step 4: Extract Deterministic Source Logic & Formulas ──────────────
         target_files = sorted(scoped_files) if scoped_files else sorted(source_files_set)
-        if not target_files:
-            # Generic fallback: match question tokens against indexed filenames
+        if not target_files and (graph_evidence or vector_evidence):
+            # Only match filenames if some evidence was found or query explicitly names a file
             q_terms = [w.lower() for w in re.findall(r"[A-Za-z0-9_-]{3,}", question)]
             for fn in list(self.normalizer._cobol_meta_cache.keys()) + list(self.normalizer._sql_meta_cache.keys()) + list(self.normalizer._ssis_meta_cache.keys()):
                 fn_clean = Path(fn).name
-                if any(t in fn_clean.lower() or fn_clean.lower() in t for t in q_terms):
+                if any(t == fn_clean.lower() or t in fn_clean.lower() for t in q_terms if len(t) >= 4):
                     target_files.append(fn_clean)
             target_files = list(set(target_files))
 
@@ -223,28 +345,56 @@ class InvestigationAgent:
         )
         trace.append("Answer synthesized by LLM")
 
-        # ── Step 6: Source-Aware Metadata Normalization ───────────────────────
-        normalized_result = self.normalizer.normalize(
-            question=question,
-            intent=intent,
-            graph_records=records,
-            vector_chunks=chunks,
-            vector_summaries=summaries,
-            synthesized_answer=answer,
-            selected_files=scoped_files,
+        # ── Step 6: Relevance Verification & Source Suppression ───────────────
+        # If question is irrelevant or unverified: suppress all sources and strip any Sources header
+        is_unverified_or_irrelevant = (
+            (not graph_evidence and not vector_evidence and not scoped_files)
+            or any(phrase in answer.lower() for phrase in (
+                "could not be verified",
+                "outside the scope",
+                "not relevant",
+                "no relevant evidence",
+                "no matching entities",
+                "not present in the supplied",
+                "does not appear to be relevant",
+            ))
         )
-        trace.append(f"Extracted metadata for {len(normalized_result.sources)} source artifacts")
 
-        # Ensure source_files list matches selected_files when specified
-        final_source_files = sorted(scoped_files) if scoped_files else sorted(
-            source_files_set.union({s.file_name for s in normalized_result.sources})
-        )
+        if is_unverified_or_irrelevant:
+            # Strip any Sources section from the answer text
+            answer = re.sub(r"(?i)###?\s*sources\b[\s\S]*?(?=(?:CONFIDENCE|##|\Z))", "", answer).strip()
+            final_source_files = []
+            normalized_sources = []
+            confidence = min(confidence, 0.25)
+            trace.append("Query is unverified/irrelevant. Suppressed all sources.")
+        else:
+            normalized_result = self.normalizer.normalize(
+                question=question,
+                intent=intent,
+                graph_records=records,
+                vector_chunks=chunks,
+                vector_summaries=summaries,
+                synthesized_answer=answer,
+                selected_files=scoped_files,
+            )
+            normalized_sources = normalized_result.sources
+            final_source_files = sorted(scoped_files) if scoped_files else sorted(
+                source_files_set.union({s.file_name for s in normalized_sources})
+            )
+            trace.append(f"Extracted metadata for {len(normalized_sources)} source artifacts")
 
         scope = InvestigationScope(
             query=question,
             selected_files=final_source_files,
             intent=intent,
-            systems_checked=normalized_result.investigation.systems_checked,
+            systems_checked=list({s.system for s in normalized_sources}) if normalized_sources else [],
+        )
+
+        norm_obj = NormalizedInvestigationResult(
+            question=question,
+            intent=intent,
+            investigation=scope,
+            sources=normalized_sources,
         )
 
         return InvestigationResult(
@@ -257,9 +407,9 @@ class InvestigationAgent:
             vector_evidence=vector_evidence,
             trace_path=trace,
             investigation=scope,
-            sources=normalized_result.sources,
-            metadata=normalized_result,
-            normalized_result=normalized_result,
+            sources=normalized_sources,
+            metadata=norm_obj,
+            normalized_result=norm_obj,
         )
 
     def get_metadata(self, selected_files: Optional[List[str]] = None) -> NormalizedInvestigationResult:
@@ -397,6 +547,10 @@ class InvestigationAgent:
         except Exception:
             summaries = []
 
+        # Filter out low-similarity hits so irrelevant queries do not pull arbitrary code
+        chunks = [c for c in chunks if c.get("score", 0.0) >= self.min_relevance_score]
+        summaries = [s for s in summaries if s.get("score", 0.0) >= self.min_relevance_score]
+
         # If scoped files are provided, filter chunks and summaries
         if scoped_files:
             scoped_set = {f.lower() for f in scoped_files}
@@ -424,23 +578,17 @@ class InvestigationAgent:
         non_domain_keywords = [
             "prime minister", "president", "capital of", "weather in",
             "who is the ceo of apple", "who is the ceo of google",
+            "recipe for", "how to cook", "tell me a joke",
         ]
         if any(kw in q_lower for kw in non_domain_keywords):
             return (
                 "ANSWER\n"
-                "The KAIRIX knowledge base contains only technical and business information "
+                "The KAIRIX knowledge base contains technical and business information "
                 "related to the legacy insurance system (COBOL programs, SSIS ETL packages, "
                 "and SQL database views). It does not contain general world knowledge, political "
                 "information, or external current affairs.\n\n"
-                "KEY POINTS\n"
-                "- Query is outside the scope of the indexed insurance repository.\n"
-                "- No matching entities, tables, or business rules exist in the knowledge graph.\n\n"
-                "SOURCES\n"
-                "None\n\n"
                 "CONFIDENCE\n"
-                "Low — 0%\n\n"
-                "GAPS\n"
-                "- Out-of-domain query.",
+                "Low — 0%",
                 0.0,
             )
 

@@ -1,28 +1,29 @@
 {
-  "purpose": "Load policy master records from a line‑sequential input file into a VSAM KSDS (indexed) file, performing basic validation and duplicate detection.",
-  "high_level_narrative": "The program POLLOAD starts by displaying a start message and opening the sequential input file (POLICY‑IN) and the VSAM indexed file (POLICY‑MASTER). It then enters a loop that reads one record at a time from POLICY‑IN until end‑of‑file. For each record, it increments a read counter, validates that the policy number field is not blank, and if valid, moves each input field to the corresponding field in the VSAM record layout defined by the POLYMAST copybook. The program attempts to write the populated VSAM record; on a duplicate key (invalid key) it logs a duplicate‑policy error and increments an error counter, otherwise it increments a write counter. After all input records are processed, the program closes both files, displays totals for records read, written, and errors, and ends execution.",
-  "business_domain": "Personal Lines Policy Management",
+  "purpose": "Load Policy Master Records from a sequential flat file into a VSAM Key-Sequenced Dataset (KSDS) for the TFG Mainframe Personal Lines system.",
+  "high_level_narrative": "The program initializes by opening the input sequential file (POLICY-IN) and output VSAM KSDS (POLICY-MASTER). It then enters a loop reading each input record until end-of-file. For each record, it validates that the policy number is not spaces. If valid, it moves all fields from the input record to the VSAM record structure and writes to the KSDS using the policy number as the primary key. Duplicate key errors are caught and counted. Finally, it closes both files and displays summary statistics: total records read, written, and errors encountered.",
+  "business_domain": "Policy Administration / PolicyCenter (Personal Lines)",
   "inputs": [
-    "POLICY-IN (line sequential file containing raw policy data)"
+    "POLICY-IN (sequential flat file, assigned to POLIN, line sequential organization)"
   ],
   "outputs": [
-    "POLICY-MASTER (VSAM KSDS indexed file storing policy master records)"
+    "POLICY-MASTER (VSAM KSDS, assigned to POLYMAST, indexed organization, dynamic access, record key: POLICY-NUMBER)"
   ],
   "key_transformations": [
-    "Validation: reject records where PI-POLICY-NUMBER is blank and count as error.",
-    "Field mapping: move each PI‑* field from the input record to the corresponding VSAM field (e.g., PI-POLICY-NUMBER → POLICY-NUMBER, PI-CUSTOMER-ID → CUSTOMER-ID, etc.).",
-    "Duplicate detection: VSAM write with INVALID KEY clause treats duplicate POLICY-NUMBER as an error.",
-    "Counting: increment WS-READ-COUNT for each input record, WS-WRITE-COUNT for successful writes, WS-ERROR-COUNT for validation or duplicate errors."
+    "Sequential file read with end-of-file detection",
+    "Policy number validation (reject if spaces)",
+    "Field-by-field mapping from input record (POLICY-IN-REC) to VSAM record (POLICY-MASTER-RECORD) for 13 fields",
+    "VSAM KSDS write with duplicate key detection (INVALID KEY handling)",
+    "Counters for records read, written, and errors"
   ],
   "key_dependencies": [
-    "Copybook POLYMAST (defines the VSAM record layout for POLICY-MASTER)",
-    "File definitions for POLICY-IN (sequential) and POLICY-MASTER (indexed VSAM)",
-    "COBOL runtime file‑status handling (WS-IN-STATUS, WS-VSAM-STATUS)"
+    "VSAM KSDS dataset POLYMAST (POLICY-MASTER)",
+    "Sequential input dataset POLIN (POLICY-IN)",
+    "COBOL runtime environment for VSAM operations"
   ],
   "business_rules": [
-    "A policy record must contain a non‑blank policy number; otherwise it is considered invalid.",
-    "Policy numbers must be unique in the POLICY-MASTER VSAM file; duplicate keys are rejected and logged as errors.",
-    "All fields from the input record are transferred directly to the VSAM record without transformation.",
-    "Processing stops only after the entire input file has been read; no partial roll‑back is performed."
+    "Policy number (PI-POLICY-NUMBER) must not be spaces; records with blank policy numbers are rejected and counted as errors",
+    "Policy number is the unique primary key for the VSAM KSDS; duplicate policy numbers are rejected and counted as errors",
+    "All 13 policy attributes are loaded without transformation: customer ID, agent ID, product code, policy type, effective date, expiration date, current status, payment frequency, policy term, written premium, earned premium, renewal date",
+    "Written premium and earned premium are stored as packed decimal (9(10)V99) preserving two decimal places"
   ]
 }

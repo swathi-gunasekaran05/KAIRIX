@@ -24,7 +24,8 @@ class NIMProvider(LLMProvider):
                 "NVIDIA_NIM_API_KEY is required for NVIDIA NIM."
             )
 
-        timeout = int(os.getenv("NIM_TIMEOUT", os.getenv("LLM_TIMEOUT", "180")))
+        timeout = int(os.getenv("NIM_TIMEOUT", os.getenv("LLM_TIMEOUT", "300")))
+        max_retries = int(os.getenv("NIM_MAX_RETRIES", "5"))
 
         client = OpenAICompatibleClient(
             api_key=api_key,
@@ -37,6 +38,7 @@ class NIMProvider(LLMProvider):
                 "openai/gpt-oss-120b",
             ),
             timeout_seconds=timeout,
+            max_retries=max_retries,
         )
 
         return cls(client=client)

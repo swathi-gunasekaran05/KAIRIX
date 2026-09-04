@@ -1,44 +1,47 @@
 # Source Code Summary: KPICALC
 
-**Business Domain:** Insurance Policy & Premium KPI Reporting
+**Business Domain:** Insurance - Personal Lines Policy and Premium Reporting
 
 ## Purpose
-Generate Key Performance Indicator (KPI) statistics for insurance policies by merging a status‑updated policy extract with an earned‑premium extract, validating data quality, reconciling written premiums against earned and unearned components, and producing a KPI summary report and an error file.
+Calculate Policy and Premium KPI Metrics & Reconciliation for TFG Personal Lines Reporting by matching policy and premium extracts, computing policy counts by status and product type, aggregating written/earned/unearned premiums, and validating reconciliation (Written = Earned + Unearned within 0.01 tolerance).
 
 ## High-Level Narrative
-The program opens four sequential files (policy input, premium input, KPI output, error output). It reads the first record from each input file. It then enters a loop that continues until both input files reach end‑of‑file or a fatal error occurs. Inside the loop the program compares the current policy numbers: if they match, it processes the matched pair (increments total policy count, classifies policy status, aggregates premium amounts, aggregates product‑specific totals, checks the reconciliation rule, and writes any data‑quality errors). If the policy number from the policy file is less than the premium file, the policy has no matching premium (missing premium) and an error record is written. If the premium number is less than the policy number, the premium is orphaned (no matching policy) and an error record is written. After handling a case the appropriate next record is read. Out‑of‑order records in either input cause a fatal error. When the loop ends, the program writes a formatted KPI report to KPI‑OUT, closes all files, displays summary counters (total policies, reconciliation errors, data‑quality errors, I/O errors), sets an appropriate RETURN‑CODE based on error severity, and terminates.
+The program opens four sequential files: POLICY-IN (policy extract), PREMIUM-IN (premium extract), KPI-OUT (KPI report), and ERROR-OUT (error/exception report). It reads the first record from each input file, then enters a merge loop that processes records in policy-number order. When policy numbers match, it increments total policy counters, classifies by status (AC, PN, EX, CN) and product type (HO, AU), accumulates premium totals (written, earned, unearned) overall and by product, and performs reconciliation check. If a policy has no matching premium record, it logs error K001; if a premium record has no matching policy, it logs error K002. Unknown status or product type generate errors K003/K004. Reconciliation mismatches beyond 0.01 generate error K005. Sequence validation ensures both input files are sorted ascending by policy number. After processing all records, it writes a formatted 80-byte KPI report with counts and premium totals, closes files, and sets return code: 12 for fatal errors, 4 for data quality errors, 0 otherwise.
 
 ## Inputs
-- POLICY-IN – status‑updated policy extract (sorted by POLICY‑NO)
-- PREMIUM-IN – earned premium extract (sorted by POLICY‑NO)
+- POLICY-IN (Task 8 Status-updated Policy Extract, 77-byte records)
+- PREMIUM-IN (Task 7 Earned Premium Extract, 65-byte records)
 
 ## Outputs
-- KPI-OUT – KPI summary report file
-- ERROR-OUT – data‑quality and processing error file
+- KPI-OUT (Formatted 80-byte Monthly KPI Metrics Report)
+- ERROR-OUT (Reconciliation and Sequence Error Exceptions, 80-byte records)
 
 ## Key Transformations
-- Count total policies and categorize by status codes (AC, PN, EX, CN) and unknown status.
-- Count policies by product type (HO, AU) and track unknown product types.
-- Aggregate written, earned, and unearned premium amounts across all policies.
-- Aggregate written, earned, and unearned premium amounts separately for HO and AU products.
-- Compute reconciliation difference: WRITTEN – (EARNED + UNEARNED) and flag when absolute difference exceeds tolerance of 0.01.
-- Detect and count out‑of‑order records in both input streams.
-- Identify missing premium records (policy without premium) and orphan premium records (premium without policy).
-- Generate formatted KPI lines for the KPI‑OUT file (counts and monetary totals).
-- Create error records with specific error codes and messages for data‑quality violations.
+- Sequential merge join on policy number between policy and premium extracts
+- Policy count aggregation by status: Active (AC), Pending (PN), Expired (EX), Cancelled (CN)
+- Policy count aggregation by product type: Homeowners (HO), Auto (AU)
+- Premium aggregation: Written, Earned, Unearned totals overall and by product type
+- Reconciliation validation: Written Premium = Earned + Unearned (tolerance 0.01)
+- Missing premium detection (policy without premium) -> error K001
+- Orphan premium detection (premium without policy) -> error K002
+- Data quality validation: unknown policy status -> error K003, unknown product type -> error K004
+- Reconciliation mismatch -> error K005
+- Input sequence validation (ascending policy number)
 
 ## Key Dependencies
-- File definitions for POLICY-IN, PREMIUM-IN, KPI-OUT, and ERROR-OUT (SELECT statements).
-- Working‑storage variables for status flags, counters, totals, and formatting edits.
-- COBOL intrinsic FUNCTION ABS for absolute difference calculation.
-- Standard COBOL I/O operations (OPEN, READ, WRITE, CLOSE, DISPLAY).
+- POLICY-IN file (assigned to POLIN)
+- PREMIUM-IN file (assigned to PREMIN)
+- KPI-OUT file (assigned to KPIOUT)
+- ERROR-OUT file (assigned to ERROUT)
+- No copybooks or external procedures referenced
 
 ## Business Rules
-- Policy status must be one of: AC (active), PN (pending), EX (expired), CN (cancelled). Unknown status triggers error K003.
-- Product type must be HO (home) or AU (auto). Unknown product triggers error K004.
-- Every policy record must have a matching premium record; otherwise error K001 (missing premium).
-- Every premium record must have a matching policy record; otherwise error K002 (orphan premium).
-- Reconciliation rule: WRITTEN premium must equal EARNED + UNEARNED within a tolerance of 0.01; violations trigger error K005.
-- Input files must be sorted by POLICY‑NO; detection of a decreasing POLICY‑NO sets a fatal error.
-- Data‑quality errors increment WS-DQ-ERRORS; I/O errors increment WS-IO-ERRORS; reconciliation errors increment WS-RECON-ERRORS.
-- Return‑code 12 for fatal I/O or ordering errors, return‑code 4 when any data‑quality errors are present, otherwise normal return.
+- Policy statuses: AC=Active, PN=Pending, EX=Expired, CN=Cancelled; any other value is invalid (K003)
+- Product types: HO=Homeowners, AU=Auto; any other value is invalid (K004)
+- Reconciliation rule: Written Premium must equal Earned Premium + Unearned Premium within 0.01 tolerance (K005)
+- Every policy must have a matching premium record; missing premium is error K001
+- Every premium record must have a matching policy; orphan premium is error K002
+- Input files must be sorted ascending by policy number; out-of-sequence is fatal I/O error
+- File open/read errors are fatal (return code 12)
+- Data quality errors (K001-K005) set return code 4 if any occur
+- KPI report includes: total policies, active/pending/expired/cancelled counts, HO/AU counts, unknown status/product counts, missing/orphan/reconciliation error counts, written/earned/unearned premiums overall and by product

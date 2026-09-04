@@ -1,15 +1,24 @@
-       IDENTIFICATION DIVISION.
-       PROGRAM-ID. EARNPREM.
+        IDENTIFICATION DIVISION.
+        PROGRAM-ID. EARNPREM.
 
-      ******************************************************************
-      * COMPACT POC VERSION OF EARNPREM
-      * BUSINESS LOGIC PRESERVED:
-      *   EARNED = WRITTEN * EARNED-DAYS / TERM-DAYS
-      *   TERM/EARNED DAYS ARE INCLUSIVE (+1)
-      *   EARNED IS CAPPED AT WRITTEN PREMIUM
-      *   UNEARNED = WRITTEN - EARNED, FLOOR ZERO
-      *   POLICY MATCHING, DATE VALIDATION AND ERROR RULES PRESERVED
-      ******************************************************************
+       ******************************************************************
+       * PROGRAM NAME : EARNPREM
+       * PURPOSE      : Calculate Earned and Unearned Pro-Rata Premium
+       * SYSTEM       : TFG Personal Lines Rating & Billing Engine
+       *
+       * INPUTS:
+       *   POLICY-IN   - Validated Policy Records (Effective & Expiry Dates)
+       *   PREMIUM-IN  - Written Premium Records
+       *
+       * OUTPUTS:
+       *   PREMIUM-OUT - Earned & Unearned Premium Results
+       *   ERROR-OUT   - Out-of-order or Date Discrepancy Exceptions
+       *
+       * FORMULA:
+       *   EARNED   = WRITTEN * EARNED-DAYS / TERM-DAYS
+       *   UNEARNED = WRITTEN - EARNED (FLOOR ZERO)
+       *   TERM & EARNED DAYS INCLUSIVE (+1)
+       ******************************************************************
 
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.

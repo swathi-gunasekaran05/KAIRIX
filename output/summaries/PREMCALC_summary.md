@@ -1,46 +1,49 @@
 # Source Code Summary: PREMCALC
 
-**Business Domain:** Premium Calculation (Insurance Rating) for Homeowners and Auto policies.
+**Business Domain:** Insurance Premium Calculation / Personal Lines Rating Engine
 
 ## Purpose
-Calculate daily premium amounts for validated policies by aggregating property, vehicle, and coverage data, applying product‑specific rating rules (Homeowners and Auto), and outputting premium records with a unique premium ID while logging any processing errors.
+Calculate Written and Unearned Premium for Homeowners (HO) and Auto (AU) insurance policies by reading policy master records and associated property, vehicle, and coverage data, applying product-specific rating formulas, and outputting premium records or error exceptions.
 
 ## High-Level Narrative
-The program opens five sequential files (policy, property, vehicle, coverage, premium output, error output). It reads the first property, vehicle, and coverage records to prime look‑ahead buffers. It then enters a loop reading each policy record (sorted by policy number). For each policy it resets calculation work fields, determines the product type, and attempts to locate the associated property (HO) or vehicle (AU) record by scanning the respective input file until the policy numbers match. If a matching asset record is found, it scans the coverage file to collect all coverage records belonging to the same policy, summing coverage limits and deductibles and counting coverages. With these aggregates it invokes the appropriate calculation routine (CALC‑HO or CALC‑AU) that uses hard‑coded rating constants to compute risk value, discount, and final premium, enforcing minimum premium and maximum discount limits. A premium ID is built from the first six characters of the policy number plus the current date. The premium record is written to PREMIUM‑OUT and counters are updated. If any required asset or coverage is missing, or the product type is unsupported, an error record with a specific error code and message is written to ERROR‑OUT. After all policies are processed the files are closed and processing statistics are displayed. Fatal file‑open or I/O errors abort the run.
+The program initializes by opening six sequential files (four inputs, two outputs) and reading the first records from Property, Vehicle, and Coverage files. It then enters a main loop reading Policy records until EOF. For each policy, it determines product type (HO or AU). For HO, it searches Property file for matching policy number, then searches Coverage file for all coverages linked to that policy. If found, it calculates premium using Homeowners formula: Base + (Property Value * Risk Rate) + (Total Coverage Limits * Coverage Rate) - (Total Deductibles * Deductible Rate), applying minimum premium floor and maximum discount cap. For AU, it searches Vehicle file for matching policy, then Coverage file, and calculates using Auto formula: Base + (Vehicle Value * Risk Rate) + (Total Coverage Limits * Coverage Rate) - (Total Deductibles * Deductible Rate), with its own min/max constraints. Unearned premium is derived pro-rata based on days remaining in policy term. Successful calculations write to PREMIUM-OUT; missing data or invalid product types write to ERROR-OUT with specific error codes. Counters track reads, calculations, errors, and I/O errors for final reporting.
 
 ## Inputs
-- POLICY-IN (sequential file containing policy header records)
-- PROPERTY-IN (sequential file containing property asset records)
-- VEHICLE-IN (sequential file containing vehicle asset records)
-- COVERAGE-IN (sequential file containing coverage detail records)
+- POLICY-IN (Policy Master Records, 77 chars)
+- PROPERTY-IN (Homeowners Property Characteristics, 172 chars)
+- VEHICLE-IN (Auto Vehicle Records, 117 chars)
+- COVERAGE-IN (Coverage Limits and Deductibles, 66 chars)
 
 ## Outputs
-- PREMIUM-OUT (sequential file containing calculated premium records)
-- ERROR-OUT (sequential file containing error records for missing data or validation failures)
+- PREMIUM-OUT (Calculated Written/Unearned Premium Records, 65 chars)
+- ERROR-OUT (Rating Calculation Exception Records, 70 chars)
 
 ## Key Transformations
-- Read and buffer the next property, vehicle, and coverage records to enable sequential matching by policy number.
-- Aggregate all coverage records for a policy: total coverage limit (WS-COV-LIMIT-TOTAL), total deductible (WS-DEDUCT-TOTAL), and coverage count (WS-COVERAGE-COUNT).
-- Calculate risk value as (asset value * risk‑rate) using WS‑HO‑RISK‑RATE or WS‑AU‑RISK‑RATE.
-- Calculate premium components: base amount, coverage‑rate component, deductible‑rate component, then apply discount (capped by WS‑HO‑MAX‑DISC / WS‑AU‑MAX‑DISC) and enforce minimum premium (WS‑HO‑MIN / WS‑AU‑MIN).
-- Compose PO-PREMIUM-ID = first 6 characters of PI-POLICY-NO concatenated with WS-CURRENT-DATE (YYMMDD).
-- Populate PO-REC with written premium (from policy), earned premium (calculated), unearned premium (written minus earned), and calculation date.
-- Write error records with ER-CODE and ER-MESSAGE when required asset or coverage data is missing or product type is invalid.
+- Homeowners Premium = WS-HO-BASE + (PR-PROPERTY-VALUE * WS-HO-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-HO-COV-RATE) - (WS-DEDUCT-TOTAL * WS-HO-DED-RATE)
+- Auto Premium = WS-AU-BASE + (VE-VEHICLE-VALUE * WS-AU-RISK-RATE) + (WS-COV-LIMIT-TOTAL * WS-AU-COV-RATE) - (WS-DEDUCT-TOTAL * WS-AU-DED-RATE)
+- Minimum premium enforcement (HO: 150.00, AU: 125.00)
+- Maximum discount cap enforcement (HO: 100.00, AU: 75.00)
+- Unearned Premium = Written Premium * (Days Remaining / Total Policy Days)
+- Earned Premium = Written Premium - Unearned Premium
+- Sequential file matching by Policy Number across Property, Vehicle, and Coverage files
 
 ## Key Dependencies
-- File definitions for POLICY-IN, PROPERTY-IN, VEHICLE-IN, COVERAGE-IN, PREMIUM-OUT, ERROR-OUT.
-- Rating constants defined in WS‑RATING‑CONSTANTS (HO and AU base, rates, min, max‑discount).
-- Cobol intrinsic FUNCTION CURRENT‑DATE for generating the calculation date.
-- Work‑storage fields for file status, EOF switches, calculation accumulators, and counters.
+- POLICY-IN file (POLIN)
+- PROPERTY-IN file (PROPIN)
+- VEHICLE-IN file (VEHIN)
+- COVERAGE-IN file (COVGIN)
+- PREMIUM-OUT file (PREMOUT)
+- ERROR-OUT file (ERROUT)
+- Rating constants defined in WS-RATING-CONSTANTS
 
 ## Business Rules
-- Product type must be either 'HO' (Homeowners) or 'AU' (Auto); otherwise error P004 is generated.
-- Homeowners policies require a matching property record; missing record generates error P001.
-- Auto policies require a matching vehicle record; missing record generates error P002.
-- At least one coverage record must exist for a policy; missing coverage generates error P003.
-- Premium ID is 12 bytes: first 6 bytes of the policy number + YYMMDD of the calculation date, assuming one calculation per policy per day.
-- Premium calculation uses product‑specific constants: base amount, risk rate, coverage rate, deductible rate, minimum premium, and maximum discount.
-- Discount applied cannot exceed the product‑specific maximum discount and premium cannot fall below the product‑specific minimum.
-- Earned premium = calculated premium; unearned premium = written premium – earned premium.
-- All input files must be sorted by policy number to allow sequential matching.
-- Fatal file‑open or I/O errors abort processing and set RETURN‑CODE to 12.
+- Product Type must be 'HO' (Homeowners) or 'AU' (Auto) - error P004 otherwise
+- Homeowners policy requires matching Property record - error P001 if missing
+- Auto policy requires matching Vehicle record - error P002 if missing
+- Both product types require at least one Coverage record - error P003 if missing
+- Homeowners Base Premium: 100.00, Risk Rate: 0.002, Coverage Rate: 0.001, Deductible Rate: 0.05
+- Auto Base Premium: 75.00, Risk Rate: 0.015, Coverage Rate: 0.0008, Deductible Rate: 0.03
+- Homeowners Minimum Premium: 150.00, Maximum Discount: 100.00
+- Auto Minimum Premium: 125.00, Maximum Discount: 75.00
+- Unearned premium calculated pro-rata using policy effective/expiry dates and current date
+- Premium ID generated as Policy Number + 'PRM' suffix

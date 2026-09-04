@@ -1,47 +1,44 @@
 # Source Code Summary: EARNPREM
 
-**Business Domain:** Insurance Premium Accounting (Earned Premium Calculation)
+**Business Domain:** Insurance Premium Calculation / Policy Billing
 
 ## Purpose
-Calculate earned and unearned premium amounts for each premium record by matching it to a policy, validating dates, applying the earned‑premium formula, and writing the results or error records.
+Calculate Earned and Unearned Pro-Rata Premium for insurance policies by matching premium records to policy effective/expiry dates, validating calendar dates, computing term days and earned days using integer date arithmetic, and applying the pro-rata formula: Earned = Written * EarnedDays / TermDays (inclusive), Unearned = Written - Earned (floored at zero).
 
 ## High-Level Narrative
-The program opens four sequential files (policy input, premium input, premium output, error output). It reads the first policy record, then enters a loop reading premium records until end‑of‑file or a fatal error occurs. For each premium record it searches forward through the policy file until the policy number matches (or EOF). If a matching policy is found, the program validates the policy effective date, expiry date, and the premium calculation date using calendar rules (including leap‑year handling). It also checks that the expiry date is not earlier than the effective date. Once dates are valid, it converts the dates to integer values, computes the inclusive term days, determines earned days based on the calculation date, calculates earned premium as (written premium * earned‑days / term‑days) rounded, caps earned premium at the written amount, derives unearned premium as written minus earned (floored at zero), and writes the premium output record. If any validation or lookup fails, an appropriate error code and message are written to the error file. After processing all records the files are closed and the program terminates.
+The program opens four sequential files (Policy-In, Premium-In, Premium-Out, Error-Out). It reads the first policy record, then enters a loop reading each premium record. For each premium, it searches the policy file (assumed sorted by policy number) to find a matching policy. If not found, writes error E001. If found, validates three dates (policy effective, policy expiry, premium calculation date) for valid calendar format including leap year logic. Validates expiry >= effective. Computes term days (expiry - effective + 1) and earned days based on calculation date: before effective = 0, after expiry = term days, within term = calc - effective + 1. Calculates earned premium with rounding, caps at written premium, computes unearned as written - earned floored at zero. Writes result to Premium-Out. On any validation failure, writes error record to Error-Out with specific error code. Continues until premium file exhausted, then closes all files.
 
 ## Inputs
-- POLICY-IN (PI-REC: PI-POLICY-NO, PI-EFFECTIVE-DATE, PI-EXPIRY-DATE)
-- PREMIUM-IN (PRI-REC: PRI-PREMIUM-ID, PRI-POLICY-NO, PRI-WRITTEN-PREMIUM, PRI-CALCULATION-DATE)
+- POLICY-IN (sequential file: policy number, effective date, expiry date)
+- PREMIUM-IN (sequential file: premium ID, policy number, written premium, earned premium, unearned premium, calculation date)
 
 ## Outputs
-- PREMIUM-OUT (PRO-REC: PRO-PREMIUM-ID, PRO-POLICY-NO, PRO-WRITTEN-PREMIUM, PRO-EARNED-PREMIUM, PRO-UNEARNED-PREMIUM, PRO-CALCULATION-DATE)
-- ERROR-OUT (ER-REC: ER-POLICY-NO, ER-CODE, ER-MESSAGE)
+- PREMIUM-OUT (sequential file: premium ID, policy number, written premium, earned premium, unearned premium, calculation date)
+- ERROR-OUT (sequential file: policy number, error code, error message)
 
 ## Key Transformations
-- Validate calendar dates for effective, expiry, and calculation dates (including month length and leap‑year rules).
-- Convert dates to integer representation using FUNCTION INTEGER-OF-DATE.
-- Compute TERM‑DAYS = (ExpiryDateInt - EffectiveDateInt + 1) (inclusive).
-- Determine EARNED‑DAYS based on calculation date relative to effective and expiry dates.
-- Calculate EARNED = WRITTEN * EARNED‑DAYS / TERM‑DAYS (rounded).
-- Cap EARNED at WRITTEN premium.
-- Calculate UNEARNED = WRITTEN - EARNED, floor at zero.
-- Write result or error records to respective output files.
+- Date validation with leap year calculation (Gregorian calendar rules)
+- Integer date conversion using FUNCTION INTEGER-OF-DATE for day counting
+- Term days calculation: Expiry - Effective + 1 (inclusive)
+- Earned days determination based on calculation date relative to policy term
+- Pro-rata earned premium: Written * EarnedDays / TermDays with rounding
+- Earned premium cap at written premium
+- Unearned premium = Written - Earned, floored at zero
+- Sequential file matching on policy number (merge-like logic)
 
 ## Key Dependencies
-- COBOL intrinsic FUNCTION INTEGER-OF-DATE
-- COBOL intrinsic FUNCTION MOD (used in leap‑year check)
-- Sequential file handling (OPEN, READ, WRITE, CLOSE)
-- File status variables WS-PI-ST, WS-PR-ST, WS-PO-ST, WS-ER-ST
-- Working‑storage fields for date components, calculations, and flags
+- COBOL intrinsic functions: INTEGER-OF-DATE, MOD
+- Sequential file system (POLIN, PREMIN, PREMOUT, ERROUT)
+- Sorted input assumption: Policy-In and Premium-In ordered by policy number
 
 ## Business Rules
-- EARNED = WRITTEN * EARNED‑DAYS / TERM‑DAYS (rounded).
-- TERM‑DAYS = (ExpiryDate – EffectiveDate) + 1 (inclusive).
-- If calculation date < effective date, EARNED‑DAYS = 0.
-- If calculation date > expiry date, EARNED‑DAYS = TERM‑DAYS.
-- Otherwise, EARNED‑DAYS = (CalculationDate – EffectiveDate) + 1.
-- EARNED must not exceed WRITTEN premium; if it does, set EARNED = WRITTEN.
-- UNEARNED = WRITTEN – EARNED; if negative, set UNEARNED = 0.
-- Policy must exist for each premium record; otherwise error E001.
-- All dates must be valid calendar dates; otherwise errors E002 (effective), E003 (expiry), E006 (calculation).
-- Expiry date must not be earlier than effective date; otherwise error E004.
-- TERM‑DAYS must be greater than zero; otherwise error E005.
+- Policy record must exist for each premium record (E001)
+- All dates must be valid calendar dates (E002, E003, E006)
+- Policy expiry date must be on or after effective date (E004)
+- Policy term days must be positive (E005)
+- Calculation date before effective date => 0 earned days
+- Calculation date after expiry date => full term earned days
+- Calculation date within term => inclusive days from effective
+- Earned premium cannot exceed written premium
+- Unearned premium cannot be negative (minimum zero)
+- Day counts are inclusive (+1) for both term and earned periods

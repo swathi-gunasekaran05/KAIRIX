@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase, Driver, Session
-from neo4j.exceptions import ServiceUnavailable, AuthError
+from neo4j.exceptions import ServiceUnavailable, AuthError, SessionExpired
 
 load_dotenv()
 
@@ -38,20 +38,32 @@ class Neo4jClient:
         database: Optional[str] = None,
         silent: bool = False,
     ):
-        self.uri = uri or os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687")
+        self.uri = uri or os.getenv("NEO4J_URI")
+        if not self.uri:
+            raise RuntimeError("NEO4J_URI is required in .env (e.g. neo4j+s://<instance_id>.databases.neo4j.io)")
         self.username = username or os.getenv("NEO4J_USERNAME", "neo4j")
-        self.password = password or os.getenv("NEO4J_PASSWORD", "neo4j")
+        self.password = password or os.getenv("NEO4J_PASSWORD")
         self.database = database or os.getenv("NEO4J_DATABASE", "neo4j")
         self.silent = silent
         self._driver: Optional[Driver] = None
         self._connect()
 
     def _connect(self) -> None:
-        """Establish driver connection and verify connectivity."""
+        """Establish driver connection with AuraDB cloud keepalive settings."""
         try:
+            if self._driver:
+                try:
+                    self._driver.close()
+                except Exception:
+                    pass
             self._driver = GraphDatabase.driver(
                 self.uri,
                 auth=(self.username, self.password),
+                keep_alive=True,
+                liveness_check_timeout=0,
+                max_connection_lifetime=180,  # Cycle connections before cloud proxies drop idle sockets (300s timeout)
+                connection_timeout=30.0,
+                notifications_min_severity="OFF",
             )
             self._driver.verify_connectivity()
             if not self.silent:
@@ -73,21 +85,25 @@ class Neo4jClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Execute a Cypher query and return all records as dicts.
-
-        Args:
-            cypher: The Cypher query string.
-            params: Optional parameter dict for the query.
-
-        Returns:
-            List of record dicts.
+        Execute a read query and return all records as dicts.
+        Uses execute_read with automatic driver retry and reconnect.
         """
         if self._driver is None:
-            raise RuntimeError("[Neo4j] Driver not initialized. Call _connect() first.")
+            self._connect()
         params = params or {}
-        with self._driver.session(database=self.database) as session:
-            result = session.run(cypher, params)
-            return [dict(record) for record in result]
+
+        def _work(tx):
+            res = tx.run(cypher, params)
+            return [dict(record) for record in res]
+
+        try:
+            with self._driver.session(database=self.database) as session:
+                return session.execute_read(_work)
+        except (SessionExpired, ServiceUnavailable, OSError):
+            # Defunct connection dropped by cloud proxy; reconnect driver and retry
+            self._connect()
+            with self._driver.session(database=self.database) as session:
+                return session.execute_read(_work)
 
     def run_write(
         self,
@@ -96,9 +112,23 @@ class Neo4jClient:
     ) -> List[Dict[str, Any]]:
         """
         Execute a write transaction (CREATE / MERGE / SET / DELETE).
-        Same as run_query but clearly signals intent.
+        Uses execute_write with automatic retry.
         """
-        return self.run_query(cypher, params)
+        if self._driver is None:
+            self._connect()
+        params = params or {}
+
+        def _work(tx):
+            res = tx.run(cypher, params)
+            return [dict(record) for record in res]
+
+        try:
+            with self._driver.session(database=self.database) as session:
+                return session.execute_write(_work)
+        except (SessionExpired, ServiceUnavailable, OSError):
+            self._connect()
+            with self._driver.session(database=self.database) as session:
+                return session.execute_write(_work)
 
     def run_batch(
         self,

@@ -80,7 +80,7 @@ Return ONLY the Cypher query, no explanation, no markdown.
 
 # ── Answer Synthesis ───────────────────────────────────────────────────────────
 ANSWER_SYNTHESIS_PROMPT = """You are a senior insurance legacy systems reverse-engineering specialist.
-You have been asked a question and retrieved evidence from a Neo4j knowledge graph and Qdrant vector database across COBOL, SSIS, and SQL sources.
+You have been asked a question and retrieved evidence from a Neo4j knowledge graph and Pinecone vector database across COBOL, SSIS, and SQL sources.
 
 Question:
 {question}
@@ -94,69 +94,54 @@ Semantic Evidence (relevant source code / summaries):
 Synthesize a precise, question-driven, non-redundant reverse-engineering response based ONLY on verified source evidence.
 
 CRITICAL RULES:
-1. QUESTION-DRIVEN DETAIL LEVEL:
-   - Match the response format and depth directly to what the user's question asks:
-     • "Which tables and columns...": Prioritize Database, Schema, Table, Column, and each column's role (direct input, control flag, grouping, filtering). Do NOT include a standalone `### Formula` section unless strictly required.
-     • "How is X calculated?" / "What formula...": Prioritize verified arithmetic formulas and calculation logic under `### Formula`.
-     • "Where does X come from?" / "Origin": Prioritize source origin, upstream dependencies, and derivations.
-     • "How does X flow...": Prioritize step-by-step lineage (Source → Transformation → Destination) under `### Data Flow`.
-     • "Which systems implement X?": Prioritize multi-system comparisons and key differences.
+1. ONLY SHOW THE RELEVANT SYSTEM (DO NOT DUMP UNRELATED SYSTEMS):
+   - Focus exclusively on the system(s) where the answer ACTUALLY originates:
+     • If a calculation takes place in COBOL, show ONLY COBOL. Do NOT include SSIS or SQL just because they query or stage the field.
+     • If an ETL data movement takes place in SSIS, show ONLY SSIS. Do NOT include COBOL or SQL unless they are direct sources/destinations of that ETL.
+     • If a database query or schema exists in SQL, show ONLY SQL.
+   - Merely passing, staging, or selecting a value is NOT calculating it. Never create dummy sections for systems that don't directly perform the asked logic.
 
-2. RELEVANT VS AUXILIARY SOURCES (For Table/Column & Logic Questions):
-   - Clearly categorize the role of participating attributes:
-     - Direct calculation inputs (e.g. monetary amounts, rates)
-     - Calculation-control inputs (e.g. type codes, sign flags, erosion booleans)
-     - Grouping attributes (e.g. policy number, LOB code)
-     - Supporting/filtering attributes (e.g. approval dates, status filters)
-   - Do NOT present every joined lookup table as if it directly calculates the value.
+2. FORMULAS MUST BE HUMAN-READABLE MATHEMATICAL EQUATIONS (NO RAW CODE DUMPS):
+   - Express all calculations as clean mathematical equations using standard business names:
+     • Example: `Written Premium = Base ($100.00) + (0.2% × Property Value) + (0.1% × Coverage Limit) − Deductible Discount`
+     • DO NOT dump raw code statements or internal variables like `WS-DISCOUNT = WS-DEDUCT-TOTAL * WS-HO-DED-RATE` or SQL `CASE WHEN ...` blocks.
+   - Include constants, percentages, minimum floors, and caps directly in the equation.
+   - Translate internal code variables into their plain business meaning (e.g. `Property Value` instead of `WS-RISK-VALUE`, `Elapsed Days` instead of `WS-EARNED-DAYS`).
 
-3. NO REDUNDANCY:
-   - The opening ANSWER must provide a concise, high-level conclusion (1–2 short paragraphs).
-   - Detailed supporting inventories and code blocks belong once in their dedicated subsection under `## <SYSTEM>`.
-   - Never repeat the same explanation, column inventory, or formula across ANSWER, Key Points, Formula, and Sources.
-   - `### Sources` should identify the participating source files, not repeat the detailed explanation.
+3. CONCISE & TARGETED FORMAT:
+   - Provide only the sections needed to answer the question:
+     - **ANSWER**: Direct, 1-2 paragraph executive summary.
+     - **FORMULA** (only if asking for a calculation): The exact mathematical equation.
+     - **DATA FLOW** (only if asking for a pipeline/movement): Concise flow: Input → Processing → Output.
+     - **SOURCES**: The exact file name(s) where the logic lives.
+   - Do NOT repeat the same subsections (Key Points, Data Flow, Formula, Sources) for multiple systems if only one system is relevant.
 
-4. SINGLE SOURCE-SYSTEM HEADING:
-   - Each system heading (## COBOL, ## SSIS, ## SQL) must appear AT MOST ONCE.
-   - Only include a system heading if that system contains relevant verified evidence.
+4. ZERO HALLUCINATION:
+   - Base every statement strictly on the provided evidence. Never invent rules or parameters.
 
-5. DISTINGUISH CALCULATION VS DATA MOVEMENT:
-   - Do NOT describe SELECT, READ, MOVE, COPY, mapping, staging, or loading as a calculation.
-   - Explicitly clarify when SSIS or SQL stages/transfers data without independent calculation.
-
-6. ZERO HALLUCINATION & FORMULA SAFETY:
-   - Include formulas only if explicitly verified in source code. Never guess or invent tables, columns, or rules.
-   - If an exact formula cannot be verified, state: "Exact formula could not be verified from the available source evidence."
-
-7. GAPS & TERMINATION:
-   - Include `## GAPS` ONLY when actual missing dependencies or unverified elements exist. Omit if none.
-   - The response must END immediately after the last section. Do NOT append metadata dumps.
+5. NO SOURCES FOR IRRELEVANT OR UNVERIFIED QUESTIONS:
+   - If the question is off-topic, not relevant, or no verified evidence exists in the retrieved context:
+     • State clearly in the ANSWER section that no relevant evidence exists in the indexed legacy codebase.
+     • DO NOT output any system subsections (## COBOL, ## SQL, ## SSIS), formulas, or Sources.
+     • Omit the Sources section completely. Never list unrelated or dummy source files.
 
 REQUIRED OUTPUT STRUCTURE:
 
 ANSWER
-[Direct, concise executive conclusion answering the question in 1-2 short paragraphs]
+[Direct, concise answer answering the user's question directly]
 
-[For each relevant system with verified evidence, include its single section with only the relevant subsections:]
+## <RELEVANT SYSTEM ONLY (e.g. COBOL)> (Omit if question is irrelevant or unverified)
+### Key Logic & Rules
+- [Key business rules or logic items]
 
-## <SYSTEM (COBOL / SSIS / SQL)>
-### Key Points
-- [Verified key takeaway, table/column inventory with roles, or business rule]
+### Formula (Omit if question does not involve a calculation)
+[Clean, human-readable mathematical equation with all rates, floors, and caps]
 
-### Data Flow
-[Only if question asks about or involves data flow: Input Source → Transformation/Step → Output/Destination]
-
-### Formula
-[Only if question asks about or involves calculations/formulas: Exact verified mathematical formula or code block]
-
-### Sources
-- [Actual source files used]
+### Sources (Omit if question is irrelevant or unverified)
+- [Exact source file(s) where this logic resides]
 
 CONFIDENCE
 [High / Medium / Low — percentage and short rationale]
-
-## GAPS
-[Only if genuine missing evidence or dependencies exist. Omit if none.]
 
 Answer:
 """

@@ -1,342 +1,308 @@
--- *****************************************************************************************
---
--- With filter (primarily YTD) & data returned modifications this can be also used for P&L 
--- incurred losses using the detail calculation.  It will also require a join to PC to get 
--- profit center and uses the TFG loss transaction codes as a filter.
---
--- *****************************************************************************************
--- ************************************************************************************
--- Server: PBENGWCSQL01    Converted to Cloud Claim Center views.
---  Must Join to Policy Center to get accurate policy underwriting company
--- ************************************************************************************
+-- ============================================================================
+-- SCRIPT: ClaimCenter_Monoline.sql
+-- DOMAIN: ClaimCenter / Loss Accounting & Claims Reporting
+-- PURPOSE: Extracts monoline incurred losses, financial recovery details,
+--          claim representative assignments, and TFG transaction code mapping.
+-- SOURCE VIEWS:
+--   - vw_curr_cc_transactionlineitem (tl)
+--   - vw_curr_cc_transaction (t)
+--   - vw_curr_cc_transactionset (tset)
+--   - vw_curr_cc_claim (cl)
+--   - vw_curr_cc_policy (po)
+--   - vw_curr_cc_check (ck)
+--   - vw_curr_cc_reserveline (rl)
+--   - vw_curr_cc_exposure (ex)
+--   - vw_curr_cc_coverage (cv)
+--   - vw_curr_cc_contact (clmcont)
+--   - vw_curr_cc_user (u1, u2)
+--   - vw_curr_cc_riskunit (ru)
+--   - vw_curr_cc_classcode (cls)
+--   - Type Views: vw_curr_cctl_lobcode, vw_curr_cctl_policytype,
+--                 vw_curr_cctl_transaction, vw_curr_cctl_losscause,
+--                 vw_curr_cctl_transactionstatus, vw_curr_cctl_costtype,
+--                 vw_curr_cctl_costcategory, vw_curr_cctl_linecategory,
+--                 vw_curr_cctl_transactionlifecyclestate,
+--                 vw_curr_cctl_recoverycategory,
+--                 vw_curr_cctl_underwritingcompanytype,
+--                 vw_curr_cctl_coveragesubtype, vw_curr_cctl_coveragetype,
+--                 vw_curr_cctl_checkbatching, vw_curr_cctl_paymenttype
+-- TARGET: Monoline Incurred Losses Summary by Policy and LOB
+-- ============================================================================
 
+DECLARE @PV_STARTDATE datetime = '2026-06-30 00:00:00';
+DECLARE @PV_ENDDATE datetime = '2026-08-01 00:00:00';
 
- -- Not used
-declare @PV_STARTDATE datetime = '2026-6-30 00:00:00'
-declare @PV_ENDDATE datetime = '2026-08-1 00:00:00'
-
-
-select   --*
-distinct 
-PolSource,
-LOBCode 
---,ClaimNumber
---,LossDate
---,ReportedDate
---,Count(0) as RecCount
-,sum(TransAmount) as IncurredAmount
-,PolicyNumber
-from
-(
-Select 
-	--rownum,
-	PolSource,
-	PolicyPrefix_Ext,
-	LOBCode,
-	 
-	ClaimNumber,
-	PolicyType,
-	PolicyType2,
-	ClaimRep1,
-	ClaimRep2,
-	ClaimState,
-	PolicyState,
-	PolicyNumber,
-	--right('000' + cast(PolicyDec as varchar(2)),3)  as PolicyDec,
-	PolicyDec,
-	Producer,
-	Company,
-	PolOrgEffDate,
-	PolEffDate,
-	PolExpDate,
-	ReportedDate,
-	LossDate,
-	CauseOfLoss,
-	Costtype,
-	TranCode,
-	RecoveryCat,
-	case
-		when TFGTran = '431' AND CostType = 'Indemnity' AND rownum = 1 then '421'
-		when TFGTran = '431' AND CostType = 'Indemnity' AND rownum <> 1 then '431'
-		when TFGTran = '431' AND CostType <> 'Indemnity' AND rownum = 1 then '422'
-		when TFGTran = '431' AND CostType <> 'Indemnity' AND rownum <> 1 then '432'
-	else TFGTran end as TFGTran,
-	AcctDate_sql,
-	AcctDate, 
-	right('000' + cast(ClmtNumber as varchar(3)),3) as ClmtNumber,
-	right('00000000' + isnull(ltrim(Class),'0'),8) as Class,
-		
-	--FinancialAmount,
-	CoveragePatternCode,
-	
-	CovSubType, 
-	CheckNumber,
-	IssueDate,
-	DoesNotErodeReserves,
-	ReinCo,
-	ReinsAmt,
-	Amount,
-	TransAmount
-
-from
-(
-SELECT 
-	case
-		when PolicyPrefix_Ext is null then 'Legacy'
-			else 'Guidewire'
-			end as PolSource,
-
-	PolicyPrefix_Ext,
-	case 
-		when tt.TYPECODE = 'Reserve' then
-			row_number() over(partition by ClaimNumber, ex.id, tt.typecode, CST.NAME
-							order by tl.CreateTime)
-		else 0 
-		end											as rownum,
-	cast(cl.ClaimNumber					as char(13)) as ClaimNumber
-	,cast(PolicyPrefix_Ext				as char(3)) as PolicyType
-	,lob.TYPECODE						as LOBCode
-	,PolicyTypePrefix_Ext as PolicyType2
-	,cast(left(ProducerCode,2)	as char(2)) as ClaimState
-	,cast(left(ProducerCode,2)	as char(2)) as PolicyState
-
-	,case 
-		when left(ProducerCode,2) = '13' then left(isnull(u1.InRepID_ext,'00000'),5)
-		else left(isnull(u1.OhRepID_ext,'00000'),5)
-		end											as ClaimRep1 
-
-	,case
-		when SubroRepresentative_Ext is null then '00000'
-		else isnull(left(u2.SubroRepId_Ext,5),'00000') 
-		end											as ClaimRep2
-			
-	,cast((po.Policynumber)	as char(10))				as PolicyNumber
-	,po.PolicyDecNo_Ext  as PolicyDec
-  
-	,case 
-			when uw.name = 'Lightning Rod Mutual Insurance Company'	 then 'LRM'
-			when uw.name = 'Western Reserve Mutual Casualty Company' then 'WRM'
-			when uw.name = 'Sonnenberg Mutual Insurance Company'	 then 'SON'
-			else 'UNK'
-		end																			 as Company
-	,CAST(replace(convert(char(10), po.OrigEffectiveDate, 101), '/', '') AS CHAR(8)) as PolOrgEffDate
-	,CAST(replace(convert(char(10), po.EffectiveDate, 101), '/', '')	 AS CHAR(8)) as PolEffDate
-	,CAST(replace(convert(char(10), po.ExpirationDate, 101), '/', '')	 AS CHAR(8)) as PolExpDate
-	,cl.ReportedDate
-	,cl.Lossdate
-	,upper(cast(left(tlc.TYPECODE,45)									 AS CHAR(45))) as CauseOfLoss
-	
-	----
-	,cv.CicsClaimCov_Ext as TFGCov
-
-	,case
-		when ct.typecode in ('CPEquipBrkCov')					then '270'
-		when ct.typecode in ('CPINCCCov')						then '010'
-		when cv.CicsClaimCov_Ext in ('615','616','617','618')	then '010'
-		else '021' end as TFGASL
-
-	,case
-		when ct.typecode in ('CPEquipBrkCov')					then '270'
-		when ct.typecode in ('CPINCCCov')						then '010'
-		when tlc.TYPECODE in ('fire','fire-wood_coal-stove','ightning','vandalism',
-							  'explosion','sprinkler','sprinkler_leakage')	then '010'
-		else '021' end as GWASL
-     --------
-	
-	,tl.CreateTime as TLICreate
-	,isnull(tset.ApprovalDate,'01/01/2000') as ApprovalDate
-	,ScheduledSendDate 
-	
-	,case 
-		when tl.CreateTime >= isnull(tset.ApprovalDate,'01/01/2000') then cast(tl.CreateTime as date)
-		else cast(tset.approvaldate as date)
-		end																	as AcctDate_sql
-	
-	,CAST(replace(convert(char(10)
-	
-	,case 
-		when tl.CreateTime >= isnull(tset.ApprovalDate,'01/01/2000') then tl.CreateTime 
-		else tset.approvaldate end, 101), '/', '')	 AS CHAR(8))					as AcctDate
-	
-	,cast(left(ProducerCode,9) 											 AS CHAR(9)) as Producer
-	,cast((isnull(CicsClaimantNum_Ext,0))	as numeric(3))							as ClmtNumber
-	,cast(cls.Code as char(8))								as Class
-	
-	,DoesNotErodeReserves
-	
-	,CicsUnitLocNum_Ext
-	,CicsClassCode_Ext
-	,cv.CicsClaimCov_Ext		as CovCicsClaimCov
-	,ex.CicsClaimCov_Ext		as ExpCicsClaimCov
-	
-	,case 
-	when tt.TYPECODE = 'Reserve' AND cst.NAME = 'Indemnity' then '431'
-	when tt.TYPECODE = 'Reserve' AND cst.NAME <> 'Indemnity' then '432'
-	when tt.TYPECODE = 'Payment' AND cst.NAME = 'Indemnity' AND DoesNotErodeReserves = 1 then '321'
-	when tt.TYPECODE = 'Payment' AND cst.NAME = 'Indemnity' AND DoesNotErodeReserves <> 1 then '331'
-	when tt.TYPECODE = 'Payment' AND cst.NAME <> 'Indemnity' AND DoesNotErodeReserves = 1 then '322'
-	when tt.TYPECODE = 'Payment' AND cst.NAME <> 'Indemnity' AND DoesNotErodeReserves <> 1 then '332'
-	when tt.TYPECODE = 'Recovery' AND RV.TypeCode = 'Credit_loss' AND cst.NAME = 'Indemnity' then '321'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'Credit_loss' AND cst.NAME <> 'Indemnity' then '322'
-	when tt.TYPECODE = 'Recovery' AND cst.NAME = 'EXPENSE - OTHERS' then '322'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'credit_exp' then '322'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'deductible' then '321'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'salvage' AND cst.NAME = 'Indemnity' then '341'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'salvage' AND cst.NAME <> 'Indemnity' then '342'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'subro' AND cst.NAME = 'Indemnity' then '351'
-	when tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'subro' AND cst.NAME <> 'Indemnity' then '353'
-	else 'XXX'
-	end as TFGTran
-		
-		,rv.typecode as RecoveryCat
-	,upper(cast(ct.typecode as char(64)))									 as CoveragePatternCode
-	--,upper(cast(ex.CoverageSubType as char(50)))							 as ExCovSubType
-	
-	,ct.typecode			 
-	--,ex.CoverageSubType														 as exCoverageSubType												  
-	
-	,upper(cast(st.typecode as char(50)))									 as CovSubType
-	,tt.TYPECODE															 as TranCode
-	,upper(cast(CST.NAME as char(25)))										 as CostType
-	--,upper(isnull(cast(ccat.TYPECODE as char(25)),''))						 as CostCategory
-	--,isnull(ccat.NAME, '')	as CostCategory
-	--,ISNULL(lc.Name, '')	as LineCategory
-	
-	,case
-		when CST.NAME = 'Indemnity'							       then '                                             '
-		when ccat.TYPECODE in ('legalexpense_ext','appraisal_ext') then upper(cast(ccat.TYPECODE as char(45)))
-		
-		-- these are retired
-		when lc.TYPECODE in ('deductible','formerdeductible')      then upper(cast(ccat.TYPECODE as char(45)))
-		when lc.TYPECODE is not null						       then upper(cast(lc.TYPECODE as char(45)))
-		-- not in prod costcat table
-		when lc.TYPECODE is null and ccat.TYPECODE = 'autoparts'   then 'OTHER                                        '
-		else upper(cast(ccat.TYPECODE as char(45)))
-		end											as ExpCode
-	
-	,ISNULL(cast(CheckNumber as char(9)),'')		as CheckNumber
-	,ISNULL(CAST(replace(convert(char(10), ck.IssueDate, 101), '/', '') AS CHAR(8)),'') as IssueDate 
-	,'  '											as ReinCo
-	-- these not needed for loss stats
-	--,tls.name										as TranLifeStatus
-	--,ts.TYPECODE									as TransStatus
-
-	--,tl.TransactionAmount as TrxAmt
-	,'000000000.00'									as ReinsAmt
-	
-	
-	, case 
-		when tt.TYPECODE = 'Payment' then
-			case
-				when DoesNotErodeReserves = 0 then isnull(tl.TransactionAmount,0.00) * -1
-				else tl.TransactionAmount
-			end
-		when tt.TYPECODE = 'Recovery' then isnull(tl.TransactionAmount,0.00) * -1
-		else isnull(tl.TransactionAmount,0.00)
-
-		end							as TransAmount
-	
-	
-	--,tl.TransactionAmount
-	
-	
-	,CASE 
-		when tt.TYPECODE = 'Recovery'	then
-			case
-				WHEN isnull(tl.TransactionAmount,0.00) > 0 	THEN 
-					CONCAT('-', RIGHT(CAST((-100000000 + isnull(-1 * tl.TransactionAmount,0.00)) AS numeric(11,2)),11)) 
-				ELSE 
-					RIGHT(CONCAT('00000000', CAST(isnull(-1 * tl.TransactionAmount,0.00) AS numeric(11,2))),12) 
-			END  
-		else
-			case
-				WHEN isnull(tl.TransactionAmount,0.00) < 0 	THEN 
-					CONCAT('-', RIGHT(CAST((-100000000 + isnull(tl.TransactionAmount,0.00)) AS numeric(11,2)),11)) 
-				ELSE 
-					RIGHT(CONCAT('00000000', CAST(isnull(tl.TransactionAmount,0.00) AS numeric(11,2))),12) 
-			END  
-		end
-			as Amount 						
-	,tl.id						as TransLineItemID
-	,t.id						as TransactionID
-	--  **********************************************************************************************
-		,cv.PolicySystemId					as CovPolSystemID  
-		
-		,case 
-			when upper(cast(ct.typecode as char(50))) in ('BP7EmploymentPracticesLiabilityInsurance','BP7SupplementalExtendReportingPeriodEPLI') then
-				case 
-					when cv.Deductible > 99999 then '99999     '	-- Deductible is S9(5) on TFG stats
-					else cast(isnull(cv.Deductible, '          ')	as char(10))  
-				end
-			--else cast(isnull(stat.DedStatAmount, '          ') as char(10)) 
-			else '          '
-			end as DedStatAmount
-	
-		--closed and reopen fields added 09/21/2018 ek
-		
-		,CAST(replace(convert(char(10), cl.CloseDate, 101), '/', '') AS CHAR(8)) as Claim_CloseDate
-		,CAST(replace(convert(char(10), cl.ReOpenDate, 101), '/', '') AS CHAR(8)) as Claim_ReOpenDate
-		
-												
-
-FROM vw_curr_cc_transactionlineitem tl
-	left join vw_curr_cc_transaction t					(nolock) on tl.TransactionID	= t.id
-	left join vw_curr_cc_transactionset tset			(nolock) on t.TransactionSetID	= tset.id
-	left join vw_curr_cc_claim cl						(nolock) on t.ClaimID			= cl.id
-	left join vw_curr_cc_policy po						(nolock) on cl.PolicyID			= po.id
-	left join vw_curr_cc_check ck						(nolock) on t.CheckID			= ck.id
-	left join vw_curr_cc_reserveline rl					(nolock) on t.ReserveLineID		= rl.id
-	left join vw_curr_cc_exposure ex					(nolock) on t.ExposureID		= ex.id
-	left join vw_curr_cc_coverage cv					(nolock) on ex.CoverageID		= cv.id
-	left join vw_curr_cc_contact clmcont				(nolock) on ex.ClaimantDenormID = clmcont.id
-	
-	left join vw_curr_cc_user u1						(nolock) on cl.AssignedUserID	= u1.id
-	left join vw_curr_cc_user u2						(nolock) on cl.SubroRepresentative_Ext 	= u2.id
-	
-	left join vw_curr_cc_riskunit ru					(nolock) on cv.RiskUnitID		= ru.id
-	left join vw_curr_cc_classcode cls					(nolock) on ru.ClassCodeID		= cls.id
-	left join vw_curr_cctl_lobcode lob							on cl.LOBCode			= lob.id
-	left join vw_curr_cctl_policytype polt				(nolock) on po.PolicyType		= polt.id
-	left join vw_curr_cctl_transaction tt				(nolock) on t.Subtype			= tt.id
-	left join vw_curr_cctl_losscause tlc				(nolock) on cl.LossCause		= tlc.id
-	left join vw_curr_cctl_transactionstatus ts			(nolock) on t.Status			= ts.id
-	left join vw_curr_cctl_costtype CST					(nolock) on T.CostType			= CST.ID
-	left join vw_curr_cctl_costcategory ccat			(nolock) on t.CostCategory		= ccat.ID
-	left join vw_curr_cctl_linecategory lc				(nolock) on TL.LineCategory		= lc.ID
-	left join vw_curr_cctl_transactionlifecyclestate tls (nolock) on T.LifeCycleState	= tls.ID
-	left join vw_curr_cctl_recoverycategory rv			 (nolock) on t.RecoveryCategory = rv.ID
-	left join vw_curr_cctl_underwritingcompanytype uw	 (nolock) on po.UnderwritingCo  = uw.id
-	left join vw_curr_cctl_coveragesubtype st			(nolock) on ex.CoverageSubType	= st.id
-	left join vw_curr_cctl_coveragetype ct				(nolock) on cv.type				= ct.id
-	left join vw_curr_cctl_checkbatching cb				(nolock) on ck.CheckBatching	= cb.ID
-	left join vw_curr_cctl_paymenttype pt				(nolock) on t.PaymentType		= pt.id
-	where tls.name = 'committed'
-	and tset.ApprovalStatus=1				--Approved  added 08/29/2018 ek
-	
-	-- 08/07/24  mec
-	and tl.Retired = 0						-- If > 0 then transaction was deleted (matches DH)
-) x
- 
-)a	
--- For Incurred  *********************************************************
-where TFGTran in ('321', '351', '341', '421', '431')
---and PolSource in ('guidewire') --('legacy')
---and PolSource in ('legacy') 
---and AcctDate_sql < '08/01/2024'
-and AcctDate_sql > @PV_STARTDATE and AcctDate_sql < @PV_ENDDATE --'08/01/2024'
---and AcctDate_sql > '12/30/2022' and AcctDate_sql < '12/30/2023'	  -- 2023
-and PolSource = 'Guidewire'
- group by 
- PolSource 
-  --LOBCode 
- -- ClaimNumber
-  ,LOBCode
-  ,PolicyNumber
- -- ,LossDate
- -- ,ReportedDate
- having sum(TransAmount) <> 0
-
- order by 
- PolSource desc 
- --LOBCode 
- --ClaimNumber
+SELECT DISTINCT 
+    PolSource,
+    LOBCode,
+    SUM(TransAmount) AS IncurredAmount,
+    PolicyNumber
+FROM (
+    SELECT 
+        PolSource,
+        PolicyPrefix_Ext,
+        LOBCode,
+        ClaimNumber,
+        PolicyType,
+        PolicyType2,
+        ClaimRep1,
+        ClaimRep2,
+        ClaimState,
+        PolicyState,
+        PolicyNumber,
+        PolicyDec,
+        Producer,
+        Company,
+        PolOrgEffDate,
+        PolEffDate,
+        PolExpDate,
+        ReportedDate,
+        LossDate,
+        CauseOfLoss,
+        Costtype,
+        TranCode,
+        RecoveryCat,
+        CASE
+            WHEN TFGTran = '431' AND CostType = 'Indemnity' AND rownum = 1 THEN '421'
+            WHEN TFGTran = '431' AND CostType = 'Indemnity' AND rownum <> 1 THEN '431'
+            WHEN TFGTran = '431' AND CostType <> 'Indemnity' AND rownum = 1 THEN '422'
+            WHEN TFGTran = '431' AND CostType <> 'Indemnity' AND rownum <> 1 THEN '432'
+            ELSE TFGTran
+        END AS TFGTran,
+        AcctDate_sql,
+        AcctDate, 
+        RIGHT('000' + CAST(ClmtNumber AS varchar(3)), 3) AS ClmtNumber,
+        RIGHT('00000000' + ISNULL(LTRIM(Class), '0'), 8) AS Class,
+        CoveragePatternCode,
+        CovSubType, 
+        CheckNumber,
+        IssueDate,
+        DoesNotErodeReserves,
+        ReinCo,
+        ReinsAmt,
+        Amount,
+        TransAmount
+    FROM (
+        SELECT 
+            CASE
+                WHEN po.PolicyPrefix_Ext IS NULL THEN 'Legacy'
+                ELSE 'Guidewire'
+            END AS PolSource,
+            po.PolicyPrefix_Ext,
+            CASE 
+                WHEN tt.TYPECODE = 'Reserve' THEN
+                    ROW_NUMBER() OVER(
+                        PARTITION BY cl.ClaimNumber, ex.id, tt.TYPECODE, CST.NAME
+                        ORDER BY tl.CreateTime
+                    )
+                ELSE 0 
+            END AS rownum,
+            CAST(cl.ClaimNumber AS char(13)) AS ClaimNumber,
+            CAST(po.PolicyPrefix_Ext AS char(3)) AS PolicyType,
+            lob.TYPECODE AS LOBCode,
+            po.PolicyTypePrefix_Ext AS PolicyType2,
+            CAST(LEFT(cl.ProducerCode, 2) AS char(2)) AS ClaimState,
+            CAST(LEFT(cl.ProducerCode, 2) AS char(2)) AS PolicyState,
+            CASE 
+                WHEN LEFT(cl.ProducerCode, 2) = '13' THEN LEFT(ISNULL(u1.InRepID_ext, '00000'), 5)
+                ELSE LEFT(ISNULL(u1.OhRepID_ext, '00000'), 5)
+            END AS ClaimRep1,
+            CASE
+                WHEN cl.SubroRepresentative_Ext IS NULL THEN '00000'
+                ELSE ISNULL(LEFT(u2.SubroRepId_Ext, 5), '00000') 
+            END AS ClaimRep2,
+            CAST(po.Policynumber AS char(10)) AS PolicyNumber,
+            po.PolicyDecNo_Ext AS PolicyDec,
+            CASE 
+                WHEN uw.name = 'Lightning Rod Mutual Insurance Company'  THEN 'LRM'
+                WHEN uw.name = 'Western Reserve Mutual Casualty Company' THEN 'WRM'
+                WHEN uw.name = 'Sonnenberg Mutual Insurance Company'     THEN 'SON'
+                ELSE 'UNK'
+            END AS Company,
+            CAST(REPLACE(CONVERT(char(10), po.OrigEffectiveDate, 101), '/', '') AS CHAR(8)) AS PolOrgEffDate,
+            CAST(REPLACE(CONVERT(char(10), po.EffectiveDate, 101), '/', '')     AS CHAR(8)) AS PolEffDate,
+            CAST(REPLACE(CONVERT(char(10), po.ExpirationDate, 101), '/', '')    AS CHAR(8)) AS PolExpDate,
+            cl.ReportedDate,
+            cl.Lossdate,
+            UPPER(CAST(LEFT(tlc.TYPECODE, 45) AS CHAR(45))) AS CauseOfLoss,
+            cv.CicsClaimCov_Ext AS TFGCov,
+            CASE
+                WHEN ct.typecode IN ('CPEquipBrkCov')                  THEN '270'
+                WHEN ct.typecode IN ('CPINCCCov')                      THEN '010'
+                WHEN cv.CicsClaimCov_Ext IN ('615','616','617','618')  THEN '010'
+                ELSE '021' 
+            END AS TFGASL,
+            CASE
+                WHEN ct.typecode IN ('CPEquipBrkCov')                  THEN '270'
+                WHEN ct.typecode IN ('CPINCCCov')                      THEN '010'
+                WHEN tlc.TYPECODE IN ('fire','fire-wood_coal-stove','ightning','vandalism',
+                                      'explosion','sprinkler','sprinkler_leakage') THEN '010'
+                ELSE '021' 
+            END AS GWASL,
+            tl.CreateTime AS TLICreate,
+            ISNULL(tset.ApprovalDate, '01/01/2000') AS ApprovalDate,
+            ck.ScheduledSendDate,
+            CASE 
+                WHEN tl.CreateTime >= ISNULL(tset.ApprovalDate, '01/01/2000') THEN CAST(tl.CreateTime AS date)
+                ELSE CAST(tset.approvaldate AS date)
+            END AS AcctDate_sql,
+            CAST(REPLACE(CONVERT(char(10), 
+                CASE 
+                    WHEN tl.CreateTime >= ISNULL(tset.ApprovalDate, '01/01/2000') THEN tl.CreateTime 
+                    ELSE tset.approvaldate 
+                END, 101), '/', '') AS CHAR(8)) AS AcctDate,
+            CAST(LEFT(cl.ProducerCode, 9) AS CHAR(9)) AS Producer,
+            CAST(ISNULL(ex.CicsClaimantNum_Ext, 0) AS numeric(3)) AS ClmtNumber,
+            CAST(cls.Code AS char(8)) AS Class,
+            t.DoesNotErodeReserves,
+            ex.CicsUnitLocNum_Ext,
+            ex.CicsClassCode_Ext,
+            cv.CicsClaimCov_Ext AS CovCicsClaimCov,
+            ex.CicsClaimCov_Ext AS ExpCicsClaimCov,
+            CASE 
+                WHEN tt.TYPECODE = 'Reserve' AND cst.NAME = 'Indemnity' THEN '431'
+                WHEN tt.TYPECODE = 'Reserve' AND cst.NAME <> 'Indemnity' THEN '432'
+                WHEN tt.TYPECODE = 'Payment' AND cst.NAME = 'Indemnity' AND t.DoesNotErodeReserves = 1 THEN '321'
+                WHEN tt.TYPECODE = 'Payment' AND cst.NAME = 'Indemnity' AND t.DoesNotErodeReserves <> 1 THEN '331'
+                WHEN tt.TYPECODE = 'Payment' AND cst.NAME <> 'Indemnity' AND t.DoesNotErodeReserves = 1 THEN '322'
+                WHEN tt.TYPECODE = 'Payment' AND cst.NAME <> 'Indemnity' AND t.DoesNotErodeReserves <> 1 THEN '332'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TypeCode = 'Credit_loss' AND cst.NAME = 'Indemnity' THEN '321'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'Credit_loss' AND cst.NAME <> 'Indemnity' THEN '322'
+                WHEN tt.TYPECODE = 'Recovery' AND cst.NAME = 'EXPENSE - OTHERS' THEN '322'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'credit_exp' THEN '322'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'deductible' THEN '321'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'salvage' AND cst.NAME = 'Indemnity' THEN '341'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'salvage' AND cst.NAME <> 'Indemnity' THEN '342'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'subro' AND cst.NAME = 'Indemnity' THEN '351'
+                WHEN tt.TYPECODE = 'Recovery' AND rv.TYPECODE = 'subro' AND cst.NAME <> 'Indemnity' THEN '353'
+                ELSE 'XXX'
+            END AS TFGTran,
+            rv.typecode AS RecoveryCat,
+            UPPER(CAST(ct.typecode AS char(64))) AS CoveragePatternCode,
+            ct.typecode AS CoverageTypeCode,
+            UPPER(CAST(st.typecode AS char(50))) AS CovSubType,
+            tt.TYPECODE AS TranCode,
+            UPPER(CAST(CST.NAME AS char(25))) AS CostType,
+            CASE
+                WHEN CST.NAME = 'Indemnity' THEN '                                             '
+                WHEN ccat.TYPECODE IN ('legalexpense_ext', 'appraisal_ext') THEN UPPER(CAST(ccat.TYPECODE AS char(45)))
+                WHEN lc.TYPECODE IN ('deductible', 'formerdeductible') THEN UPPER(CAST(ccat.TYPECODE AS char(45)))
+                WHEN lc.TYPECODE IS NOT NULL THEN UPPER(CAST(lc.TYPECODE AS char(45)))
+                WHEN lc.TYPECODE IS NULL AND ccat.TYPECODE = 'autoparts' THEN 'OTHER                                        '
+                ELSE UPPER(CAST(ccat.TYPECODE AS char(45)))
+            END AS ExpCode,
+            ISNULL(CAST(ck.CheckNumber AS char(9)), '') AS CheckNumber,
+            ISNULL(CAST(REPLACE(CONVERT(char(10), ck.IssueDate, 101), '/', '') AS CHAR(8)), '') AS IssueDate,
+            '  ' AS ReinCo,
+            '000000000.00' AS ReinsAmt,
+            CASE 
+                WHEN tt.TYPECODE = 'Payment' THEN
+                    CASE
+                        WHEN t.DoesNotErodeReserves = 0 THEN ISNULL(tl.TransactionAmount, 0.00) * -1
+                        ELSE tl.TransactionAmount
+                    END
+                WHEN tt.TYPECODE = 'Recovery' THEN ISNULL(tl.TransactionAmount, 0.00) * -1
+                ELSE ISNULL(tl.TransactionAmount, 0.00)
+            END AS TransAmount,
+            CASE 
+                WHEN tt.TYPECODE = 'Recovery' THEN
+                    CASE
+                        WHEN ISNULL(tl.TransactionAmount, 0.00) > 0 THEN 
+                            CONCAT('-', RIGHT(CAST((-100000000 + ISNULL(-1 * tl.TransactionAmount, 0.00)) AS numeric(11,2)), 11)) 
+                        ELSE 
+                            RIGHT(CONCAT('00000000', CAST(ISNULL(-1 * tl.TransactionAmount, 0.00) AS numeric(11,2))), 12) 
+                    END  
+                ELSE
+                    CASE
+                        WHEN ISNULL(tl.TransactionAmount, 0.00) < 0 THEN 
+                            CONCAT('-', RIGHT(CAST((-100000000 + ISNULL(tl.TransactionAmount, 0.00)) AS numeric(11,2)), 11)) 
+                        ELSE 
+                            RIGHT(CONCAT('00000000', CAST(ISNULL(tl.TransactionAmount, 0.00) AS numeric(11,2))), 12) 
+                    END  
+            END AS Amount, 						
+            tl.id AS TransLineItemID,
+            t.id AS TransactionID,
+            cv.PolicySystemId AS CovPolSystemID,
+            CASE 
+                WHEN UPPER(CAST(ct.typecode AS char(50))) IN ('BP7EmploymentPracticesLiabilityInsurance', 'BP7SupplementalExtendReportingPeriodEPLI') THEN
+                    CASE 
+                        WHEN cv.Deductible > 99999 THEN '99999     '
+                        ELSE CAST(ISNULL(cv.Deductible, '          ') AS char(10))  
+                    END
+                ELSE '          '
+            END AS DedStatAmount,
+            CAST(REPLACE(CONVERT(char(10), cl.CloseDate, 101), '/', '') AS CHAR(8)) AS Claim_CloseDate,
+            CAST(REPLACE(CONVERT(char(10), cl.ReOpenDate, 101), '/', '') AS CHAR(8)) AS Claim_ReOpenDate
+        FROM vw_curr_cc_transactionlineitem tl
+        LEFT JOIN vw_curr_cc_transaction t (NOLOCK) 
+            ON tl.TransactionID = t.id
+        LEFT JOIN vw_curr_cc_transactionset tset (NOLOCK) 
+            ON t.TransactionSetID = tset.id
+        LEFT JOIN vw_curr_cc_claim cl (NOLOCK) 
+            ON t.ClaimID = cl.id
+        LEFT JOIN vw_curr_cc_policy po (NOLOCK) 
+            ON cl.PolicyID = po.id
+        LEFT JOIN vw_curr_cc_check ck (NOLOCK) 
+            ON t.CheckID = ck.id
+        LEFT JOIN vw_curr_cc_reserveline rl (NOLOCK) 
+            ON t.ReserveLineID = rl.id
+        LEFT JOIN vw_curr_cc_exposure ex (NOLOCK) 
+            ON t.ExposureID = ex.id
+        LEFT JOIN vw_curr_cc_coverage cv (NOLOCK) 
+            ON ex.CoverageID = cv.id
+        LEFT JOIN vw_curr_cc_contact clmcont (NOLOCK) 
+            ON ex.ClaimantDenormID = clmcont.id
+        LEFT JOIN vw_curr_cc_user u1 (NOLOCK) 
+            ON cl.AssignedUserID = u1.id
+        LEFT JOIN vw_curr_cc_user u2 (NOLOCK) 
+            ON cl.SubroRepresentative_Ext = u2.id
+        LEFT JOIN vw_curr_cc_riskunit ru (NOLOCK) 
+            ON cv.RiskUnitID = ru.id
+        LEFT JOIN vw_curr_cc_classcode cls (NOLOCK) 
+            ON ru.ClassCodeID = cls.id
+        LEFT JOIN vw_curr_cctl_lobcode lob 
+            ON cl.LOBCode = lob.id
+        LEFT JOIN vw_curr_cctl_policytype polt (NOLOCK) 
+            ON po.PolicyType = polt.id
+        LEFT JOIN vw_curr_cctl_transaction tt (NOLOCK) 
+            ON t.Subtype = tt.id
+        LEFT JOIN vw_curr_cctl_losscause tlc (NOLOCK) 
+            ON cl.LossCause = tlc.id
+        LEFT JOIN vw_curr_cctl_transactionstatus ts (NOLOCK) 
+            ON t.Status = ts.id
+        LEFT JOIN vw_curr_cctl_costtype CST (NOLOCK) 
+            ON t.CostType = CST.ID
+        LEFT JOIN vw_curr_cctl_costcategory ccat (NOLOCK) 
+            ON t.CostCategory = ccat.ID
+        LEFT JOIN vw_curr_cctl_linecategory lc (NOLOCK) 
+            ON tl.LineCategory = lc.ID
+        LEFT JOIN vw_curr_cctl_transactionlifecyclestate tls (NOLOCK) 
+            ON t.LifeCycleState = tls.ID
+        LEFT JOIN vw_curr_cctl_recoverycategory rv (NOLOCK) 
+            ON t.RecoveryCategory = rv.ID
+        LEFT JOIN vw_curr_cctl_underwritingcompanytype uw (NOLOCK) 
+            ON po.UnderwritingCo = uw.id
+        LEFT JOIN vw_curr_cctl_coveragesubtype st (NOLOCK) 
+            ON ex.CoverageSubType = st.id
+        LEFT JOIN vw_curr_cctl_coveragetype ct (NOLOCK) 
+            ON cv.type = ct.id
+        LEFT JOIN vw_curr_cctl_checkbatching cb (NOLOCK) 
+            ON ck.CheckBatching = cb.ID
+        LEFT JOIN vw_curr_cctl_paymenttype pt (NOLOCK) 
+            ON t.PaymentType = pt.id
+        WHERE tls.name = 'committed'
+          AND tset.ApprovalStatus = 1
+          AND tl.Retired = 0
+    ) x
+) a	
+WHERE TFGTran IN ('321', '351', '341', '421', '431')
+  AND AcctDate_sql > @PV_STARTDATE 
+  AND AcctDate_sql < @PV_ENDDATE
+  AND PolSource = 'Guidewire'
+GROUP BY 
+    PolSource,
+    LOBCode,
+    PolicyNumber
+HAVING SUM(TransAmount) <> 0
+ORDER BY 
+    PolSource DESC;

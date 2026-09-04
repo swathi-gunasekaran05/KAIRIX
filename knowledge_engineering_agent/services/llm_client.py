@@ -110,7 +110,9 @@ JSON Schema:
                 print(f"[LLM] Attempt {attempt} timed out after {self.timeout_seconds}s.", flush=True)
                 last_error = exc
                 if attempt <= self.max_retries:
-                    time.sleep(2 * attempt)
+                    wait_time = min(40, 5 * attempt)
+                    print(f"[LLM] Waiting {wait_time}s before retry...", flush=True)
+                    time.sleep(wait_time)
                     continue
                 raise LLMError(f"LLM request timed out after {self.max_retries + 1} attempts.") from exc
 
@@ -124,7 +126,9 @@ JSON Schema:
                 last_error = exc
                 # Retry on 429 (rate limit) or 5xx server errors
                 if exc.code in (429, 500, 502, 503, 504) and attempt <= self.max_retries:
-                    time.sleep(3 * attempt)
+                    wait_time = min(60, 8 * (2 ** (attempt - 1)))
+                    print(f"[LLM] Server overloaded ({exc.code}). Waiting {wait_time}s for capacity to free up...", flush=True)
+                    time.sleep(wait_time)
                     continue
                 raise LLMError(f"LLM HTTP request failed with status {exc.code}: {exc.reason}") from exc
 
@@ -132,7 +136,7 @@ JSON Schema:
                 print(f"[LLM] URL ERROR: {exc}", flush=True)
                 last_error = exc
                 if attempt <= self.max_retries:
-                    time.sleep(2 * attempt)
+                    time.sleep(5 * attempt)
                     continue
                 raise LLMError(f"LLM request failed: {exc}") from exc
 
