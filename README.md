@@ -27,20 +27,20 @@ flowchart TD
     end
 
     subgraph L3["Layer 3: Knowledge & Relationship Layer"]
-        KP["Canonical Packages (*_knowledge_package.json)"] --> GL["Graph Loader (Neo4j)"]
-        GL --> RDA["Relationship Discovery Agent (LLM Cross-System Matching)"]
-        KP --> VI["Vector Ingestion (Qdrant)"]
+        KP["Canonical Packages (*_knowledge_package.json)"] --> GL["Graph Loader (Neo4j AuraDB)"]
+        GL --> RDA["Relationship Discovery Agent (Cross-System Matching)"]
+        KP --> VI["Vector Ingestion (Pinecone Serverless)"]
         L1 --> VI
     end
 
     subgraph L4["Layer 4: Investigation & Reverse Engineering Layer"]
         Q["Analyst Query / Natural Language Question"] --> IA["Investigation Agent"]
-        IA --> INT["Intent Classifier (Lineage / Semantic / Hybrid)"]
-        INT --> N4J["Neo4j Cypher Traversal"]
-        INT --> QD["Qdrant Vector Search (Chunks & Summaries)"]
-        N4J --> SYN["LLM Synthesis (Formula, Data Flow, Evidence, Gaps)"]
-        QD --> SYN
-        SYN --> ANS["Evidence-Backed Answer & Confidence"]
+        IA --> INT["Intent & Greeting Guardrails"]
+        INT --> N4J["Neo4j Aura Cypher Traversal"]
+        INT --> PC["Pinecone Vector Search (Chunks & Summaries)"]
+        N4J --> SYN["LLM Synthesis (Single-Section Flow, Formulas, Consolidated Sources)"]
+        PC --> SYN
+        SYN --> ANS["Unified Evidence-Backed Response"]
     end
 
     L1 --> N1
@@ -71,21 +71,22 @@ KAIRIX/
 │   ├── schemas/ & models/           # Pydantic schemas (KnowledgeProfile, BusinessRule)
 │   └── prompts/                     # Structured LLM prompts for multi-pass extraction
 │
-├── graph_layer/                     # Layer 3: Knowledge Graph (Neo4j)
-│   ├── neo4j_client.py              # Neo4j Bolt driver & query runner
+├── graph_layer/                     # Layer 3: Knowledge Graph (Neo4j AuraDB)
+│   ├── neo4j_client.py              # Neo4j Bolt driver with Aura keepalive & auto-retry
 │   ├── schema.cypher                # Graph constraints and node indexes
 │   ├── graph_loader.py              # Bulk package loader into Neo4j
 │   └── relationship_discovery_agent.py # LLM cross-file relationship matcher
 │
-├── vector_layer/                    # Layer 3: Vector Store (Qdrant)
-│   ├── qdrant_client_wrapper.py     # Qdrant client & collection management
-│   ├── embedder.py                  # Local SentenceTransformer embeddings (384-dim)
+├── vector_layer/                    # Layer 3: Vector Store (Pinecone Serverless)
+│   ├── pinecone_client_wrapper.py   # Pinecone client & namespace management
+│   ├── embedder.py                  # SentenceTransformer embeddings (384-dim)
 │   └── vector_ingestion.py          # Sliding-window code & summary chunker
 │
 ├── investigation_agent/             # Layer 4: Interactive Q&A Engine
 │   ├── __main__.py                  # Interactive CLI Console
 │   ├── agent.py                     # Query routing, hybrid retrieval & synthesis
 │   ├── models.py                    # InvestigationResult data model
+│   ├── normalizer.py                # Evidence normalizer & source tracer
 │   └── prompts.py                   # Cypher generation & answer synthesis prompts
 │
 ├── output/                          # Generated Artifacts
@@ -93,7 +94,7 @@ KAIRIX/
 │   ├── summaries/                   # Functional Markdown summaries (*_summary.md)
 │   └── cache/                       # Hash-based incremental analysis cache
 │
-├── .env                             # Environment configuration & credentials
+├── .env                             # Cloud environment configuration & credentials
 └── requirements.txt                 # Python dependencies
 ```
 
@@ -124,35 +125,35 @@ Executes a 7-stage deterministic + LLM workflow using **LangGraph**:
 
 ### **Layer 3: Knowledge & Relationship Layer (`graph_layer` & `vector_layer`)**
 
-#### **Knowledge Graph (Neo4j)**
+#### **Knowledge Graph (Neo4j AuraDB Cloud)**
+- **[Neo4jClient](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/graph_layer/neo4j_client.py)**: Built with cloud-native keepalive (`keep_alive=True`, `max_connection_lifetime=180s`, `liveness_check_timeout=0`) and managed transaction auto-retry (`execute_read` / `execute_write`) to eliminate defunct connection drops.
 - **[GraphLoader](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/graph_layer/graph_loader.py)**: Loads `:Artifact`, `:Entity` (`Table`, `Column`, `Program`, `Package`), `:BusinessRule`, and `:Transformation` nodes.
-- **[RelationshipDiscoveryAgent](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/graph_layer/relationship_discovery_agent.py)**: Employs LLM reasoning to discover cross-system relationships across files:
+- **[RelationshipDiscoveryAgent](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/graph_layer/relationship_discovery_agent.py)**: Discovers cross-system relationships across files:
   - `FEEDS_INTO`: Data written by one file is consumed by another.
   - `SEMANTICALLY_EQUIVALENT_TO`: Different names referencing the same logical entity.
   - `DERIVES_FROM`: Downstream metric calculated from upstream source fields.
   - `SHARED_BY`: Read-only entity shared across multiple batch jobs/queries.
 
-#### **Vector Database (Qdrant)**
-- **[VectorIngestion](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/vector_layer/vector_ingestion.py)**:
-  - `kairix_chunks`: Sliding-window chunks (50 lines with 10-line overlap) of raw source code with exact line ranges.
+#### **Vector Store (Pinecone Serverless Cloud)**
+- **[PineconeWrapper](file:///c:/Users/ThomasBaiju/OneDrive%20-%20ValueMomentum,%20Inc/Documents/KAIRIX/vector_layer/pinecone_client_wrapper.py)**: Serverless vector index (`kairix`) with dimension 384 and cosine similarity metric:
+  - `kairix_chunks`: Sliding-window chunks of raw source code with exact line ranges and human-readable chunk IDs.
   - `kairix_summaries`: Embeddings of functional markdown summaries for high-level semantic search.
+  - **Relevance Guardrail**: Discards chunks below similarity threshold (`0.35`) to prevent unrelated queries from attaching false sources.
 
 ---
 
 ### **Layer 4: Investigation & Reverse Engineering Layer (`investigation_agent`)**
 
-Provides an interactive console for natural language investigation:
-1. **Intent Classification**: Determines if a question is about data lineage (Graph), functional logic (Vector search), or both (Hybrid).
-2. **Cypher Generation**: Converts natural language into targeted Cypher queries for Neo4j.
-3. **Combined Retrieval**: Queries Neo4j for structural facts/relationships and Qdrant for semantic code snippets.
-4. **Answer Synthesis**: Formulates a response with:
-   - **ANSWER**: Direct executive summary.
-   - **KEY POINTS**: Core logic and business rules.
-   - **DATA FLOW**: End-to-end data pipeline across files.
-   - **FORMULA**: Mathematical and logical calculation formulas.
-   - **SOURCES**: Referenced files and line anchors.
-   - **CONFIDENCE**: Evidential confidence rating.
-   - **GAPS**: Highlighted gaps, unmapped dependencies, or ambiguities.
+Provides an interactive console for natural language investigation with a **Single Unified Section Output Layout**:
+1. **Greeting & Relevance Guardrail**: Recognizes greetings (e.g. *"happy onam"*, *"hello"*, *"thanks"*) and answers conversationally without querying the database or attaching code sources.
+2. **Intent Classification & Routing**: Classifies queries (calculation, data flow, validation, lineage, architecture).
+3. **Hybrid Cross-System Retrieval**: Queries Neo4j Aura for graph relationships and Pinecone for semantic code chunks.
+4. **Single-Section Synthesis (Zero Code Dumps)**:
+   - **ANSWER**: Direct, cohesive executive summary.
+   - **End-to-End Flow**: Unified progression across systems (Origin $\rightarrow$ Movement & Validation $\rightarrow$ Consumption & Reporting).
+   - **Key Logic & Formulas**: Plain-English business mathematical equations with rates, floors, and caps (no raw code or internal variable names).
+   - **Sources**: Single consolidated list of verified files at the bottom (suppressed entirely for off-topic/unverified queries).
+   - **CONFIDENCE**: Single overall calibrated confidence score.
 
 ---
 
@@ -161,7 +162,7 @@ Provides an interactive console for natural language investigation:
 ### 1. Prerequisites
 - **Python**: 3.10 or higher
 - **Neo4j AuraDB**: Managed Cloud Graph Database (`neo4j+s://...`)
-- **Pinecone**: Serverless Cloud Vector Database (`kairix` index)
+- **Pinecone**: Serverless Cloud Vector Database (`kairix` index, dim=384, cosine)
 - **LLM Provider**: NVIDIA NIM or any OpenAI-compatible API endpoint
 
 ---
@@ -191,20 +192,22 @@ Provides an interactive console for natural language investigation:
    # LLM Endpoint (NVIDIA NIM or OpenAI-compatible)
    NIM_API_KEY=nvapi-...
    NIM_BASE_URL=https://integrate.api.nvidia.com/v1
-   NIM_MODEL=meta/llama-3.1-70b-instruct
+   NIM_MODEL=nvidia/nemotron-3-ultra-550b-a55b
+   NIM_TIMEOUT=300
+   NIM_MAX_RETRIES=6
 
-   # Neo4j Graph Database
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USERNAME=neo4j
-   NEO4J_PASSWORD=your_password
+   # Neo4j AuraDB Cloud Graph Database
+   NEO4J_URI=neo4j+s://<instance_id>.databases.neo4j.io
+   NEO4J_USERNAME=<instance_id>
+   NEO4J_PASSWORD=<your_aura_password>
+   NEO4J_DATABASE=<instance_id>
 
-   # Qdrant Vector Database
-   QDRANT_HOST=localhost
-   QDRANT_PORT=6333
+   # Pinecone Serverless Cloud Vector Database
+   PINECONE_API_KEY=pcsk_...
+   PINECONE_INDEX_NAME=kairix
 
    # Embeddings
    EMBEDDING_MODEL=all-MiniLM-L6-v2
-   HF_HUB_DISABLE_IMPLICIT_TOKEN=1
    ```
 
 ---
@@ -230,7 +233,7 @@ python -m knowledge_engineering_agent source/sql/ --force-refresh
 ---
 
 ### Step 2: Build Knowledge Graph & Discover Relationships (Layer 3)
-Load the generated packages into Neo4j and discover cross-system dependencies:
+Load the generated packages into Neo4j Aura and discover cross-system dependencies:
 
 ```powershell
 python -m graph_layer
@@ -238,8 +241,8 @@ python -m graph_layer
 
 ---
 
-### Step 3: Ingest Vector Embeddings (Layer 3)
-Chunk and index the source code and markdown summaries in Qdrant:
+### Step 3: Ingest Vector Embeddings into Pinecone (Layer 3)
+Chunk and index the source code and markdown summaries into Pinecone Serverless:
 
 ```powershell
 python -m vector_layer
@@ -255,7 +258,9 @@ python -m investigation_agent --interactive
 ```
 
 **Example Queries to Try:**
-- `how is earned premium calculated?`
+- `what is premium flow across sources`
+- `how is premium calculated`
+- `ssis premium flow`
 - `which SSIS packages populate tables used by PolicyCenter SQL scripts?`
 - `trace the data flow from COBOL rating to KPI reporting`
 - `what business rules apply to policy status transitions in POLSTATUS.CBL?`
@@ -276,10 +281,10 @@ To add and index new source code in KAIRIX:
    # 1. Parse and extract knowledge
    python -m knowledge_engineering_agent source/mainframe/YOUR_FILE.CBL
 
-   # 2. Update Neo4j graph & cross-system links
+   # 2. Update Neo4j Aura graph & cross-system links
    python -m graph_layer
 
-   # 3. Update Qdrant vector embeddings
+   # 3. Update Pinecone vector embeddings
    python -m vector_layer
    ```
 
@@ -292,8 +297,13 @@ To add and index new source code in KAIRIX:
 
 ## 🧪 Testing
 
-Run the test suite to verify data models, normalizers, and package validations:
+Run the full automated unit test suite across all layers:
 
 ```powershell
+# Investigation Agent test suite (26 tests)
+python -m unittest discover -s investigation_agent/tests
+
+# Knowledge Engineering Agent test suite
 python -m unittest discover -s knowledge_engineering_agent/tests
 ```
+
